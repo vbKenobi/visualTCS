@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Algorithms - VisualTCS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/graph.css">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🔍 Graph Algorithm Visualizer</h1>
+        <a href="index.html" class="back-button">← Back to Home</a>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Left Panel: Drawing Zone -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Graph Builder</h2>
+                <div class="controls">
+                    <select id="algorithmSelect" class="btn btn-secondary">
+                        <option value="both">Both (DFS + BFS)</option>
+                        <option value="dfs">DFS Only</option>
+                        <option value="bfs">BFS Only</option>
+                    </select>
+                    <button class="btn btn-primary" id="runBtn">▶ Run</button>
+                    <button class="btn btn-secondary" id="clearBtn">Clear</button>
+                </div>
+            </div>
+
+            <canvas id="drawingCanvas"></canvas>
+
+            <div class="instructions">
+                <h3>Controls</h3>
+                <ul>
+                    <li><strong>Click</strong> to add a node</li>
+                    <li><strong>Click + Drag</strong> between nodes to create an edge</li>
+                    <li><strong>Double-click</strong> a node to set as start (cyan)</li>
+                    <li><strong>Click node + Delete/Backspace</strong> to remove node</li>
+                    <li><strong>Click edge + Delete/Backspace</strong> to remove edge</li>
+                </ul>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #718096;"></div>
+                    <span>Unvisited</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f59e0b;"></div>
+                    <span>Current</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #34d399;"></div>
+                    <span>Visited</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #22d3ee;"></div>
+                    <span>Start Node</span>
+                </div>
+            </div>
+
+            <div id="statusMsg"></div>
+        </div>
+
+        <!-- Right Panel: Visualization & Code -->
+        <div class="viz-container">
+            <div class="viz-panel">
+                <div class="panel-header">
+                    <h2 id="vizTitle">Algorithm Visualization</h2>
+                </div>
+                <canvas id="visualizationCanvas"></canvas>
+            </div>
+
+            <div class="code-section">
+                <div class="code-tabs">
+                    <button class="code-tab active" data-tab="dfs">DFS Code</button>
+                    <button class="code-tab" data-tab="bfs">BFS Code</button>
+                </div>
+                
+                <div class="code-content active" id="dfs-code">
+                    <pre><code>def dfs(graph, start):
+    visited = set()
+    traversal = []
+    
+    def dfs_helper(node):
+        visited.add(node)
+        traversal.append(node)
+        
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                dfs_helper(neighbor)
+    
+    dfs_helper(start)
+    return traversal</code></pre>
+                </div>
+
+                <div class="code-content" id="bfs-code">
+                    <pre><code>from collections import deque
+
+def bfs(graph, start):
+    visited = set([start])
+    queue = deque([start])
+    traversal = []
+    
+    while queue:
+        node = queue.popleft()
+        traversal.append(node)
+        
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+    
+    return traversal</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/graph.js"></script>
+</body>
+</html>
