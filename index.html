@@ -1,14 +1,41 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Visual TCS</title>
-  </head>
-  <body>
-    <h1>Visual TCS</h1>
-    <p>Your graph algorithms visualizer.</p>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisualTCS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <canvas id="backgroundCanvas"></canvas>
+        <div class="hero-content">
+            <h1>VisualTCS</h1>
+            <p>Explore Algorithms, Graphs, and Paths</p>
+            <a href="#features" class="cta-button">Try a Graph</a>
+        </div>
+    </section>
 
-    <button onclick="computePath()">Run Example</button>
+    <!-- Algorithm Feature Cards -->
+    <section id="features" class="features">
+        <div class="card">
+            <h2>Shortest Path</h2>
+            <div class="card-animation" id="shortestPathCard"></div>
+            <p>Visualize shortest path algorithms dynamically.</p>
+        </div>
+        <div class="card">
+            <h2>BFS / DFS</h2>
+            <div class="card-animation" id="bfsDfsCard"></div>
+            <p>See how nodes are explored in real-time.</p>
+        </div>
+        <div class="card">
+            <h2>Graph Layouts</h2>
+            <div class="card-animation" id="graphLayoutCard"></div>
+            <p>Watch nodes arrange dynamically in a force-directed layout.</p>
+        </div>
+    </section>
 
     <script src="app.js"></script>
-  </body>
+</body>
 </html>
