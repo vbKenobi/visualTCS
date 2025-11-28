@@ -22,8 +22,8 @@ class Node {
     constructor(x, y) {
         this.x = x !== undefined ? x : Math.random() * width;
         this.y = y !== undefined ? y : Math.random() * height;
-        this.vx = (Math.random() - 0.5) * 0.03;
-        this.vy = (Math.random() - 0.5) * 0.03;
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.vy = (Math.random() - 0.5) * 0.4;
         this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
         this.edgeCount = 0;
     }
