@@ -13,7 +13,7 @@ ctx.scale(dpr, dpr);
 const NODE_COUNT = 50;
 const COLORS = ["#00ffff", "#00ff99", "#9b59b6"];
 const MIN_DIST = 50;
-const MAX_EDGES_PER_NODE = 4; // cap edges per node
+const MAX_EDGES_PER_NODE = 4;
 const nodes = [];
 const edgeMap = new Map();
 function getEdgeKey(i, j) { return i < j ? `${i}-${j}` : `${j}-${i}`; }
@@ -25,7 +25,6 @@ class Node {
         this.vx = (Math.random() - 0.5) * 0.4;
         this.vy = (Math.random() - 0.5) * 0.4;
         this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        this.edgeCount = 0;
     }
     move() {
         this.x += this.vx;
@@ -59,11 +58,9 @@ function generateNodes(count, minDist){
 }
 
 nodes.push(...generateNodes(NODE_COUNT, MIN_DIST));
-
-// Reduce MAX_DISTANCE to reduce edge density
 let MAX_DISTANCE = Math.sqrt((width*height)/NODE_COUNT) * 0.9;
 
-// Connect nodes with capped edges per node
+// Connect nodes based on distance, cap edges per node
 nodes.forEach((node, i) => {
     let neighbors = [];
     nodes.forEach((other,j)=>{
@@ -97,7 +94,8 @@ function animate(){
             let opacity = edgeMap.get(key);
             const fadeSpeed = 0.02;
 
-            if(dist < MAX_DISTANCE && nodes[i].edgeCount < MAX_EDGES_PER_NODE && nodes[j].edgeCount < MAX_EDGES_PER_NODE){
+            // Only use distance to control fading, remove edgeCount check
+            if(dist < MAX_DISTANCE){
                 opacity += fadeSpeed;
                 if(opacity>1) opacity=1;
             } else {
@@ -125,8 +123,8 @@ function animate(){
 
     nodes.forEach(node=>{
         node.move();
-        node.vx *= 0.995;
-        node.vy *= 0.995;
+        node.vx *= 0.999;
+        node.vy *= 0.999;
         ctx.fillStyle = node.color;
         ctx.beginPath();
         ctx.arc(node.x,node.y,3,0,Math.PI*2);
