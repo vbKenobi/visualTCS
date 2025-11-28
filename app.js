@@ -5,19 +5,27 @@ const ctx = canvas.getContext("2d");
 let width = canvas.width = window.innerWidth;
 let height = canvas.height = window.innerHeight;
 
-const NODE_COUNT = 50;
-const MAX_DISTANCE = 150;
-const nodes = [];
+const dpr = window.devicePixelRatio || 1;
+canvas.width = width * dpr;
+canvas.height = height * dpr;
+ctx.scale(dpr, dpr);
 
-const COLORS = ["#00ffff", "#00ff99", "#9b59b6"]; // teal -> green -> purple
+const NODE_COUNT = 50;
+const COLORS = ["#00ffff", "#00ff99", "#9b59b6"];
+const MIN_DIST = 50;
+const MAX_EDGES_PER_NODE = 4; // cap edges per node
+const nodes = [];
+const edgeMap = new Map();
+function getEdgeKey(i, j) { return i < j ? `${i}-${j}` : `${j}-${i}`; }
 
 class Node {
-    constructor() {
-        this.x = Math.random() * width;
-        this.y = Math.random() * height;
-        this.vx = (Math.random() - 0.5) * 0.1; // slower
-        this.vy = (Math.random() - 0.5) * 0.1; // slower
+    constructor(x, y) {
+        this.x = x !== undefined ? x : Math.random() * width;
+        this.y = y !== undefined ? y : Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 0.03;
+        this.vy = (Math.random() - 0.5) * 0.03;
         this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        this.edgeCount = 0;
     }
     move() {
         this.x += this.vx;
@@ -27,70 +35,101 @@ class Node {
     }
 }
 
-// Initialize nodes
-for (let i = 0; i < NODE_COUNT; i++) {
-    nodes.push(new Node());
+function generateNodes(count, minDist){
+    const result = [];
+    let attempts = 0;
+    while(result.length < count && attempts < count*50){
+        let x = Math.random() * width;
+        let y = Math.random() * height;
+        let tooClose = false;
+        for(const n of result){
+            const dx = n.x - x;
+            const dy = n.y - y;
+            if(Math.sqrt(dx*dx + dy*dy) < minDist){
+                tooClose = true;
+                break;
+            }
+        }
+        if(!tooClose){
+            result.push(new Node(x, y));
+        }
+        attempts++;
+    }
+    return result;
 }
-// Create a map to store edge opacity between node pairs
-const edgeMap = new Map();
 
-function getEdgeKey(i, j) {
-    return i < j ? `${i}-${j}` : `${j}-${i}`;
-}
+nodes.push(...generateNodes(NODE_COUNT, MIN_DIST));
 
-function animate() {
-    ctx.clearRect(0, 0, width, height);
+// Reduce MAX_DISTANCE to reduce edge density
+let MAX_DISTANCE = Math.sqrt((width*height)/NODE_COUNT) * 0.9;
 
-    // Draw edges with smooth fade
-    for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
+// Connect nodes with capped edges per node
+nodes.forEach((node, i) => {
+    let neighbors = [];
+    nodes.forEach((other,j)=>{
+        if(i===j) return;
+        const dx = node.x - other.x;
+        const dy = node.y - other.y;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < MAX_DISTANCE){
+            neighbors.push({idx:j, dist});
+        }
+    });
+    neighbors.sort((a,b)=>a.dist-b.dist);
+    for(let k=0;k<Math.min(MAX_EDGES_PER_NODE, neighbors.length);k++){
+        const j = neighbors[k].idx;
+        const key = getEdgeKey(i,j);
+        edgeMap.set(key,1);
+    }
+});
+
+function animate(){
+    ctx.clearRect(0,0,width,height);
+
+    for(let i=0;i<nodes.length;i++){
+        for(let j=i+1;j<nodes.length;j++){
             const dx = nodes[i].x - nodes[j].x;
             const dy = nodes[i].y - nodes[j].y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             const key = getEdgeKey(i,j);
 
-            // initialize opacity if not exist
-            if (!edgeMap.has(key)) edgeMap.set(key, 0);
+            if(!edgeMap.has(key)) edgeMap.set(key,0);
             let opacity = edgeMap.get(key);
+            const fadeSpeed = 0.02;
 
-            const fadeSpeed = 0.02; // adjust for smoother/faster fading
-
-            if (dist < MAX_DISTANCE) {
-                // fade in
+            if(dist < MAX_DISTANCE && nodes[i].edgeCount < MAX_EDGES_PER_NODE && nodes[j].edgeCount < MAX_EDGES_PER_NODE){
                 opacity += fadeSpeed;
-                if (opacity > 1) opacity = 1;
+                if(opacity>1) opacity=1;
             } else {
-                // fade out
                 opacity -= fadeSpeed;
-                if (opacity < 0) opacity = 0;
+                if(opacity<0) opacity=0;
             }
-            edgeMap.set(key, opacity);
+            edgeMap.set(key,opacity);
 
-            if (opacity > 0) {
-                const gradient = ctx.createLinearGradient(
-                    nodes[i].x, nodes[i].y,
-                    nodes[j].x, nodes[j].y
-                );
-                gradient.addColorStop(0, nodes[i].color);
-                gradient.addColorStop(1, nodes[j].color);
+            if(opacity>0){
+                const gradient = ctx.createLinearGradient(nodes[i].x,nodes[i].y,nodes[j].x,nodes[j].y);
+                gradient.addColorStop(0,nodes[i].color);
+                gradient.addColorStop(1,nodes[j].color);
                 ctx.strokeStyle = gradient;
-                ctx.globalAlpha = opacity; // apply opacity
-                ctx.lineWidth = 1;
+                ctx.globalAlpha = opacity;
+                ctx.lineWidth = 1.2;
+                ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.moveTo(nodes[i].x, nodes[i].y);
-                ctx.lineTo(nodes[j].x, nodes[j].y);
+                ctx.moveTo(nodes[i].x,nodes[i].y);
+                ctx.lineTo(nodes[j].x,nodes[j].y);
                 ctx.stroke();
-                ctx.globalAlpha = 1; // reset
+                ctx.globalAlpha = 1;
             }
         }
     }
 
-    // Draw nodes
-    nodes.forEach(node => {
+    nodes.forEach(node=>{
         node.move();
+        node.vx *= 0.995;
+        node.vy *= 0.995;
         ctx.fillStyle = node.color;
         ctx.beginPath();
-        ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+        ctx.arc(node.x,node.y,3,0,Math.PI*2);
         ctx.fill();
     });
 
@@ -98,47 +137,50 @@ function animate() {
 }
 animate();
 
-// Resize canvas
-window.addEventListener('resize', () => {
+window.addEventListener('resize',()=>{
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
+    MAX_DISTANCE = Math.sqrt((width*height)/NODE_COUNT) * 0.9;
 });
 
-// Mouse interactivity (slight, subtle)
-canvas.addEventListener('mousemove', (e) => {
+canvas.addEventListener('mousemove',(e)=>{
     const mouse = {x: e.clientX, y: e.clientY};
-    nodes.forEach(node => {
+    nodes.forEach(node=>{
         const dx = node.x - mouse.x;
         const dy = node.y - mouse.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < 100) {
-            node.vx += dx * 0.0002; // smaller influence
-            node.vy += dy * 0.0002;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist<100){
+            node.vx += dx*0.00003;
+            node.vy += dy*0.00003;
         }
     });
 });
 
-// Placeholder card animations (can be extended)
-function initCardAnimation(cardId) {
+function initCardAnimation(cardId){
     const card = document.getElementById(cardId);
-    if (!card) return;
+    if(!card) return;
     const c = document.createElement('canvas');
     c.width = card.clientWidth;
     c.height = card.clientHeight;
     card.appendChild(c);
-    // Minimal animation inside cards (dots slowly moving)
     const cardCtx = c.getContext('2d');
     const dots = [];
-    for (let i = 0; i < 10; i++) {
-        dots.push({x: Math.random()*c.width, y: Math.random()*c.height, vx: (Math.random()-0.5)*0.2, vy: (Math.random()-0.5)*0.2, color: COLORS[Math.floor(Math.random()*COLORS.length)]});
+    for(let i=0;i<10;i++){
+        dots.push({
+            x: Math.random()*c.width,
+            y: Math.random()*c.height,
+            vx: (Math.random()-0.5)*0.2,
+            vy: (Math.random()-0.5)*0.2,
+            color: COLORS[Math.floor(Math.random()*COLORS.length)]
+        });
     }
-    function animateCard() {
+    function animateCard(){
         cardCtx.clearRect(0,0,c.width,c.height);
-        dots.forEach(dot => {
+        dots.forEach(dot=>{
             dot.x += dot.vx;
             dot.y += dot.vy;
-            if(dot.x<0 || dot.x>c.width) dot.vx*=-1;
-            if(dot.y<0 || dot.y>c.height) dot.vy*=-1;
+            if(dot.x<0||dot.x>c.width) dot.vx*=-1;
+            if(dot.y<0||dot.y>c.height) dot.vy*=-1;
             cardCtx.fillStyle = dot.color;
             cardCtx.beginPath();
             cardCtx.arc(dot.x,dot.y,2,0,Math.PI*2);
