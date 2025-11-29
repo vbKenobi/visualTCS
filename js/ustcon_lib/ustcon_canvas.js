@@ -149,72 +149,99 @@ document.addEventListener("keydown", (e) => {
 // ----------------------------------------------------
 // Button handlers
 // ----------------------------------------------------
-document.getElementById("buildGraphBtn").addEventListener("click", () => {
-    buildRandomGraph();
-    showStatus("Built random graph", "success");
-});
+const buildGraphBtn = document.getElementById("buildGraphBtn");
+if (buildGraphBtn) {
+    buildGraphBtn.addEventListener("click", () => {
+        buildRandomGraph();
+        showStatus("Built random graph", "success");
+    });
+}
 
-document.getElementById("clearBtn").addEventListener("click", () => {
-    inputGraph.nodes = [];
-    inputGraph.edges = [];
-    inputGraph.startNode = null;
-    sNode = null;
-    tNode = null;
-    selectedNode = null;
-    selectedEdge = null;
-    algorithm = null;
-    
-    drawInputGraph();
-    algoCtx.clearRect(0, 0, algoCanvas.width, algoCanvas.height);
-    
-    document.getElementById("stepDescription").innerHTML = `
-        <h4>Algorithm Overview</h4>
-        <p>
-            1. Create fixed expander graph H<br>
-            2. Make input graph G₀ regular (B² degree)<br>
-            3. Iteratively apply: G_k = G²_{k-1} ⊗ H<br>
-            4. Solve connectivity on final graph G_L
-        </p>
-    `;
-    document.getElementById("stepCounter").textContent = "Ready to run algorithm";
-    document.getElementById("progressFill").style.width = "0%";
-    document.getElementById("prevBtn").disabled = true;
-    document.getElementById("nextBtn").disabled = true;
-    
-    showStatus("Graph cleared", "info");
-});
+const clearBtn = document.getElementById("clearBtn");
+if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+        inputGraph.nodes = [];
+        inputGraph.edges = [];
+        inputGraph.startNode = null;
+        sNode = null;
+        tNode = null;
+        selectedNode = null;
+        selectedEdge = null;
+        algorithm = null;
+        
+        drawInputGraph();
+        algoCtx.clearRect(0, 0, algoCanvas.width, algoCanvas.height);
+        
+        const stepDesc = document.getElementById("stepDescription");
+        if (stepDesc) {
+            stepDesc.innerHTML = `
+                <h4>Algorithm Overview</h4>
+                <p>
+                    1. Create fixed expander graph H<br>
+                    2. Make input graph G₀ regular (B² degree)<br>
+                    3. Iteratively apply: G_k = G²_{k-1} ⊗ H<br>
+                    4. Solve connectivity on final graph G_L
+                </p>
+            `;
+        }
+        const stepCounter = document.getElementById("stepCounter");
+        if (stepCounter) stepCounter.textContent = "Ready to run algorithm";
+        
+        const progressFill = document.getElementById("progressFill");
+        if (progressFill) progressFill.style.width = "0%";
+        
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = true;
+        
+        showStatus("Graph cleared", "info");
+    });
+}
 
-document.getElementById("runAlgoBtn").addEventListener("click", () => {
-    if (inputGraph.nodes.length === 0) {
-        showStatus("Please add some nodes first!", "error");
-        return;
-    }
-    
-    if (!sNode || !tNode) {
-        showStatus("Please set both s and t nodes (double-click)", "error");
-        return;
-    }
-    
-    runReingoldAlgorithm();
-});
+const runAlgoBtn = document.getElementById("runAlgoBtn");
+if (runAlgoBtn) {
+    runAlgoBtn.addEventListener("click", () => {
+        console.log("Run button clicked!");
+        if (inputGraph.nodes.length === 0) {
+            showStatus("Please add some nodes first!", "error");
+            return;
+        }
+        
+        if (!sNode || !tNode) {
+            showStatus("Please set both s and t nodes (double-click)", "error");
+            return;
+        }
+        
+        runReingoldAlgorithm();
+    });
+}
 
-document.getElementById("nextBtn").addEventListener("click", () => {
-    if (!algorithm) return;
-    const step = algorithm.nextStep();
-    if (step) {
-        displayStep(step);
-        updateProgress();
-    }
-});
+const nextBtn = document.getElementById("nextBtn");
+if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+        console.log("Next button clicked!");
+        if (!algorithm) return;
+        const step = algorithm.nextStep();
+        if (step) {
+            displayStep(step);
+            updateProgress();
+        }
+    });
+}
 
-document.getElementById("prevBtn").addEventListener("click", () => {
-    if (!algorithm) return;
-    const step = algorithm.prevStep();
-    if (step) {
-        displayStep(step);
-        updateProgress();
-    }
-});
+const prevBtn = document.getElementById("prevBtn");
+if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+        console.log("Previous button clicked!");
+        if (!algorithm) return;
+        const step = algorithm.prevStep();
+        if (step) {
+            displayStep(step);
+            updateProgress();
+        }
+    });
+}
 
 // ----------------------------------------------------
 // Algorithm execution

@@ -6,123 +6,166 @@
     <title>Graph Algorithms - VisualTCS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/graph.css">
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <h1>🔍 Graph Algorithm Visualizer</h1>
-        <a href="index.html" class="back-button">← Back to Home</a>
-    </div>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="index.html" class="home-button">
+                <svg viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L8 2.207l6.646 6.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.707 1.5Z"/>
+                    <path d="m8 3.293 6 6V13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5V9.293l6-6Z"/>
+                </svg>
+                Home
+            </a>
+            <div class="page-title">Graph Algorithms</div>
+        </div>
+    </nav>
 
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Left Panel: Drawing Zone -->
-        <div class="panel">
+    <!-- Main Two-Column Layout -->
+    <div class="main-layout">
+        <!-- Left Panel: Input Graph -->
+        <div class="left-panel">
             <div class="panel-header">
-                <h2>Graph Builder</h2>
-                <div class="controls">
-                    <select id="algorithmSelect" class="btn btn-secondary">
-                        <option value="dfs">DFS Only</option>
-                        <option value="bfs">BFS Only</option>
-                    </select>
-                    <button class="btn btn-primary" id="runBtn">▶ Run</button>
-                    <button class="btn btn-secondary" id="clearBtn">Clear</button>
-                </div>
+                <h2>Input Graph</h2>
             </div>
-
-            <canvas id="drawingCanvas"></canvas>
-
-            <div class="instructions">
-                <h3>Controls</h3>
-                <ul>
-                    <li><strong>Click</strong> to add a node</li>
-                    <li><strong>Click + Drag</strong> between nodes to create an edge</li>
-                    <li><strong>Double-click</strong> a node to set as start (cyan)</li>
-                    <li><strong>Click node + Delete/Backspace</strong> to remove node</li>
-                    <li><strong>Click edge + Delete/Backspace</strong> to remove edge</li>
-                </ul>
+            <div class="canvas-container">
+                <canvas id="drawingCanvas"></canvas>
             </div>
-
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #718096;"></div>
-                    <span>Unvisited</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #f59e0b;"></div>
-                    <span>Current</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #34d399;"></div>
-                    <span>Visited</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #22d3ee;"></div>
-                    <span>Start Node</span>
-                </div>
-            </div>
-
-            <div id="statusMsg"></div>
         </div>
 
-        <!-- Right Panel: Visualization & Code -->
-        <div class="viz-container">
-            <div class="viz-panel">
-                <div class="panel-header">
-                    <h2 id="vizTitle">Algorithm Visualization</h2>
-                </div>
+        <!-- Right Panel: Algorithm Visualization -->
+        <div class="right-panel">
+            <div class="panel-header">
+                <h2>Algorithm Visualization</h2>
+            </div>
+            <div class="canvas-container">
                 <canvas id="visualizationCanvas"></canvas>
             </div>
+        </div>
+    </div>
 
-            <div class="code-section">
-                <div class="code-tabs">
-                    <button class="code-tab active" data-tab="dfs">DFS Code</button>
-                    <button class="code-tab" data-tab="bfs">BFS Code</button>
+    <!-- Collapsible Control Panel -->
+    <div class="control-panel" id="controlPanel">
+        <div class="control-panel-header" onclick="toggleControlPanel()">
+            <div class="control-panel-title">
+                <span>⚙️</span>
+                <span>Controls</span>
+            </div>
+            <div class="toggle-icon">▼</div>
+        </div>
+        <div class="control-panel-content">
+            <div class="control-group">
+                <label>Algorithm</label>
+                <div class="control-row">
+                    <select id="algorithmSelect">
+                        <option value="dfs">Depth-First Search (DFS)</option>
+                        <option value="bfs">Breadth-First Search (BFS)</option>
+                    </select>
                 </div>
-                
-                <div class="code-content active" id="dfs-code">
-                    <pre><code>def dfs(graph, start):
-    visited = set()
-    traversal = []
-    
-    def dfs_helper(node):
-        visited.add(node)
-        traversal.append(node)
-        
-        for neighbor in graph[node]:
-            if neighbor not in visited:
-                dfs_helper(neighbor)
-    
-    dfs_helper(start)
-    return traversal</code></pre>
+            </div>
+
+            <div class="control-group">
+                <label>Actions</label>
+                <div class="control-row">
+                    <button class="primary" id="runBtn">▶ Run Algorithm</button>
+                    <button id="pauseBtn" style="display: none;">⏸ Pause</button>
+                    <button id="stopBtn" style="display: none;">⏹ Stop</button>
+                    <button id="clearBtn">🗑 Clear Graph</button>
                 </div>
+            </div>
 
-                <div class="code-content" id="bfs-code">
-                    <pre><code>from collections import deque
+            <div class="control-group">
+                <label>Instructions</label>
+                <div style="font-size: 12px; color: #8b949e; line-height: 1.6;">
+                    <p style="margin-bottom: 6px;"><strong>Click</strong> to add a node</p>
+                    <p style="margin-bottom: 6px;"><strong>Click + Drag</strong> between nodes to create an edge</p>
+                    <p style="margin-bottom: 6px;"><strong>Double-click</strong> a node to set as start (cyan)</p>
+                    <p style="margin-bottom: 6px;"><strong>Delete/Backspace</strong> to remove selected node/edge</p>
+                </div>
+            </div>
 
-def bfs(graph, start):
-    visited = set([start])
-    queue = deque([start])
-    traversal = []
-    
-    while queue:
-        node = queue.popleft()
-        traversal.append(node)
-        
-        for neighbor in graph[node]:
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append(neighbor)
-    
-    return traversal</code></pre>
+            <div class="control-group">
+                <label>Legend</label>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 12px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 12px; height: 12px; background: #718096; border-radius: 50%;"></div>
+                        <span>Unvisited</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 12px; height: 12px; background: #f59e0b; border-radius: 50%;"></div>
+                        <span>Current</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 12px; height: 12px; background: #34d399; border-radius: 50%;"></div>
+                        <span>Visited</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 12px; height: 12px; background: #22d3ee; border-radius: 50%;"></div>
+                        <span>Start</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script type="module" src="js/graph_lib/graph_canvas.js"></script>
+    <!-- Code View Panel (Optional - Can be toggled) -->
+    <div class="info-panel collapsed" id="codePanel">
+        <div class="info-panel-header">
+            <h3>📝 Algorithm Code</h3>
+            <button class="close-panel-btn" onclick="toggleCodePanel()">×</button>
+        </div>
+        <div class="info-panel-content">
+            <div id="codeContent">
+                <!-- Code will be inserted here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle button for code panel -->
+    <button class="toggle-info-btn" id="toggleCodeBtn" onclick="toggleCodePanel()">
+        📝 View Code
+    </button>
+
+    <script type="module" src="js/graph_canvas.js"></script>
     <script src="page_js/bfsAndDfsPage.js"></script>
+    <script type="module">
+        // Initialize canvases after DOM is ready
+        import { resizeCanvas } from './js/graph_lib/graph_draw.js';
+        
+        window.addEventListener('load', () => {
+            const drawCanvas = document.getElementById('drawingCanvas');
+            const vizCanvas = document.getElementById('visualizationCanvas');
+            
+            // Force canvas resize after layout is complete
+            setTimeout(() => {
+                if (drawCanvas && vizCanvas) {
+                    resizeCanvas(drawCanvas);
+                    resizeCanvas(vizCanvas);
+                }
+            }, 100);
+        });
+    </script>
+    <script>
+        function toggleControlPanel() {
+            const panel = document.getElementById('controlPanel');
+            panel.classList.toggle('collapsed');
+        }
+
+        function toggleCodePanel() {
+            const panel = document.getElementById('codePanel');
+            const btn = document.getElementById('toggleCodeBtn');
+            panel.classList.toggle('collapsed');
+            btn.classList.toggle('hidden');
+        }
+
+        // Start with control panel open
+        document.addEventListener('DOMContentLoaded', () => {
+            const controlPanel = document.getElementById('controlPanel');
+            controlPanel.classList.remove('collapsed');
+        });
+    </script>
 </body>
 </html>

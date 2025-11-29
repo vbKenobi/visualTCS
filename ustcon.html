@@ -3,230 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USTCON in Logspace - VisualTCS</title>
+    <title>USTCON - Reingold's Algorithm - VisualTCS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/graph.css">
-    <style>
-        .algorithm-info {
-            background: #1a202c;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        
-        .algorithm-info h3 {
-            color: #00ffff;
-            margin-bottom: 0.5rem;
-        }
-        
-        .algorithm-info p {
-            color: #cbd5e0;
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-        
-        .step-description {
-            background: #2d3748;
-            padding: 1rem;
-            border-radius: 6px;
-            margin: 1rem 0;
-            border-left: 4px solid #00ffff;
-        }
-        
-        .step-description h4 {
-            color: #00ffff;
-            margin: 0 0 0.5rem 0;
-        }
-        
-        .step-description p {
-            color: #cbd5e0;
-            margin: 0;
-            font-size: 0.9rem;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #2d3748;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 1rem 0;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00ffff, #9b59b6);
-            transition: width 0.3s ease;
-        }
-        
-        .step-counter {
-            color: #888;
-            font-size: 0.9rem;
-            text-align: center;
-            margin-bottom: 0.5rem;
-        }
-        
-        .complexity-box {
-            background: #2d3748;
-            padding: 1rem;
-            border-radius: 6px;
-            margin-top: 1rem;
-        }
-        
-        .complexity-box h4 {
-            color: #00ff99;
-            margin: 0 0 0.5rem 0;
-            font-size: 1rem;
-        }
-        
-        .complexity-box .formula {
-            font-family: 'Courier New', monospace;
-            color: #fff;
-            background: #1a202c;
-            padding: 0.5rem;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-    </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <h1>🔬 Undirected ST-Connectivity in Logspace</h1>
-        <a href="index.html" class="back-button">← Back to Home</a>
-    </div>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="index.html" class="home-button">
+                <svg viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L8 2.207l6.646 6.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.707 1.5Z"/>
+                    <path d="m8 3.293 6 6V13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5V9.293l6-6Z"/>
+                </svg>
+                Home
+            </a>
+            <div class="page-title">USTCON - Reingold's Algorithm</div>
+        </div>
+    </nav>
 
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Left Panel: Graph Builder -->
-        <div class="panel">
+    <!-- Main Two-Column Layout -->
+    <div class="main-layout">
+        <!-- Left Panel: Input Graph -->
+        <div class="left-panel">
             <div class="panel-header">
                 <h2>Input Graph</h2>
-                <div class="controls">
-                    <button class="btn btn-primary" id="buildGraphBtn">Build Random Graph</button>
-                    <button class="btn btn-secondary" id="clearBtn">Clear</button>
-                </div>
             </div>
-
-            <canvas id="inputCanvas"></canvas>
-
-            <div class="instructions">
-                <h3>Controls</h3>
-                <ul>
-                    <li><strong>Click</strong> to add a node</li>
-                    <li><strong>Click + Drag</strong> between nodes to create an edge</li>
-                    <li><strong>Double-click</strong> a node to set as s (green) or t (red)</li>
-                    <li><strong>Delete/Backspace</strong> to remove selected node/edge</li>
-                </ul>
+            <div class="canvas-container">
+                <canvas id="inputCanvas"></canvas>
             </div>
-
-            <div class="algorithm-info">
-                <h3>Reingold's Algorithm (2004)</h3>
-                <p>
-                    Proves that undirected s-t connectivity can be solved using only 
-                    <strong>O(log n) space</strong>, establishing that <strong>L = SL</strong>.
-                </p>
-            </div>
-
-            <div class="complexity-box">
-                <h4>Key Result</h4>
-                <div class="formula">USTCON ∈ L</div>
-                <div class="formula" style="margin-top: 0.5rem;">Space: O(log n)</div>
-                <div class="formula" style="margin-top: 0.5rem;">Time: poly(n)</div>
-            </div>
-
-            <div id="statusMsg"></div>
         </div>
 
         <!-- Right Panel: Algorithm Visualization -->
-        <div class="viz-container">
-            <div class="viz-panel">
-                <div class="panel-header">
-                    <h2 id="vizTitle">Algorithm Steps</h2>
-                    <div class="controls">
-                        <button class="btn btn-secondary" id="prevBtn" disabled>← Previous</button>
-                        <button class="btn btn-primary" id="runAlgoBtn">Run Algorithm</button>
-                        <button class="btn btn-secondary" id="nextBtn" disabled>Next →</button>
-                    </div>
-                </div>
-                
-                <div class="step-counter" id="stepCounter">
-                    Ready to run algorithm
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                </div>
-
-                <canvas id="algoCanvas"></canvas>
-                
-                <div class="step-description" id="stepDescription">
-                    <h4>Algorithm Overview</h4>
-                    <p>
-                        1. Create fixed expander graph H<br>
-                        2. Make input graph G₀ regular (B² degree)<br>
-                        3. Iteratively apply: G_k = G²_{k-1} ⊗ H<br>
-                        4. Solve connectivity on final graph G_L
-                    </p>
-                </div>
+        <div class="right-panel">
+            <div class="panel-header">
+                <h2>Algorithm Visualization</h2>
             </div>
-
-            <div class="code-section">
-                <div class="code-tabs">
-                    <button class="code-tab active" data-tab="algo">Algorithm</button>
-                    <button class="code-tab" data-tab="complexity">Complexity</button>
-                </div>
-                
-                <div class="code-content active" id="algo-code">
-                    <pre><code>def reingold_algorithm(G, s, t, B=4):
-    # Step 1: Fixed expander H
-    H = create_expander(B)
-    
-    # Step 2: Make G regular (B² degree)
-    G_0 = make_regular(G, B²)
-    
-    # Step 3: Iterative zig-zag product
-    L = O(log n)
-    for k in range(1, L+1):
-        G_k = square(G_{k-1}) ⊗ H
-    
-    # Step 4: Solve on small-diameter graph
-    return solve_connectivity(G_L, s_L, t_L)
-
-# Zig-zag product: G ⊗ H
-def zigzag_product(G, H):
-    # Vertices: V(G) × V(H) 
-    # Edges: Combine rotation + zig-zag
-    return combined_graph</code></pre>
-                </div>
-
-                <div class="code-content" id="complexity-code">
-                    <pre><code># Space Complexity
-Space = O(log n)
-
-# Why logspace?
-- Store current vertex: O(log n)
-- Store position in H: O(log B) = O(1)
-- Iteration counter: O(log log n)
-Total: O(log n)
-
-# Key Properties
-- H is (B⁴, B, 1/4)-expander (fixed)
-- Each G_k has degree B
-- Diameter shrinks exponentially
-- After L = O(log n) iterations:
-  * Diameter = O(1)
-  * Degree = B (constant)
-  
-# Final graph can be exhaustively
-# searched in O(log n) space!</code></pre>
-                </div>
+            <div class="canvas-container">
+                <canvas id="algoCanvas"></canvas>
             </div>
         </div>
     </div>
 
+    <!-- Collapsible Control Panel -->
+    <div class="control-panel" id="controlPanel">
+        <div class="control-panel-header" onclick="toggleControlPanel()">
+            <div class="control-panel-title">
+                <span>⚙️</span>
+                <span>Controls</span>
+            </div>
+            <div class="toggle-icon">▼</div>
+        </div>
+        <div class="control-panel-content">
+            <div class="control-group">
+                <label>Actions</label>
+                <div class="control-row">
+                    <button class="primary" id="runAlgoBtn">▶ Run Algorithm</button>
+                    <button id="prevBtn">◀ Previous</button>
+                    <button id="nextBtn">Next ▶</button>
+                    <button id="clearBtn">🗑 Clear</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Instructions</label>
+                <div style="font-size: 12px; color: #8b949e; line-height: 1.6;">
+                    <p style="margin-bottom: 6px;"><strong>Click</strong> to add a node to the input graph</p>
+                    <p style="margin-bottom: 6px;"><strong>Click + Drag</strong> between nodes to create an edge</p>
+                    <p style="margin-bottom: 6px;"><strong>Double-click once</strong> to set source node (green)</p>
+                    <p style="margin-bottom: 6px;"><strong>Double-click again</strong> on different node to set target (red)</p>
+                    <p style="margin-bottom: 6px;"><strong>Run Algorithm</strong> to see Reingold's transformation steps</p>
+                    <p style="margin-bottom: 6px;"><strong>Step through</strong> to see each stage of the algorithm</p>
+                </div>
+            </div>
+            
+            <div id="statusMsg" style="margin-top: 10px; padding: 8px; border-radius: 6px; font-size: 12px; text-align: center;"></div>
+        </div>
+    </div>
+
+    <!-- Algorithm Step Info Panel -->
+    <div class="info-panel collapsed" id="stepPanel">
+        <div class="info-panel-header">
+            <h3>📊 Algorithm Progress</h3>
+            <button class="close-panel-btn" onclick="toggleStepPanel()">×</button>
+        </div>
+        <div class="info-panel-content">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <div class="step-counter" id="stepCounter">Step 0 of 0</div>
+            </div>
+            
+            <div class="step-description" id="stepDescription">
+                <h4>Algorithm Not Started</h4>
+                <p>Set up your graph and click "Run Algorithm" to begin.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle button for step panel -->
+    <button class="toggle-info-btn" id="toggleStepBtn" onclick="toggleStepPanel()">
+        📊 View Progress
+    </button>
+
     <script type="module" src="js/ustcon_lib/ustcon_canvas.js"></script>
     <script src="page_js/bfsAndDfsPage.js"></script>
+    <script type="module">
+        // Initialize canvases after DOM is ready
+        import { resizeCanvas as resizeInputCanvas } from './js/graph_lib/graph_draw.js';
+        import { resizeCanvas as resizeAlgoCanvas } from './js/ustcon_lib/ustcon_draw.js';
+        
+        window.addEventListener('load', () => {
+            const inputCanvas = document.getElementById('inputCanvas');
+            const algoCanvas = document.getElementById('algoCanvas');
+            
+            // Force canvas resize after layout is complete
+            setTimeout(() => {
+                if (inputCanvas) resizeInputCanvas(inputCanvas);
+                if (algoCanvas) resizeAlgoCanvas(algoCanvas);
+            }, 100);
+        });
+    </script>
+    <script>
+        function toggleControlPanel() {
+            const panel = document.getElementById('controlPanel');
+            panel.classList.toggle('collapsed');
+        }
+
+        function toggleStepPanel() {
+            const panel = document.getElementById('stepPanel');
+            const btn = document.getElementById('toggleStepBtn');
+            panel.classList.toggle('collapsed');
+            btn.classList.toggle('hidden');
+        }
+
+        // Start with control panel open and step panel visible
+        document.addEventListener('DOMContentLoaded', () => {
+            const controlPanel = document.getElementById('controlPanel');
+            controlPanel.classList.remove('collapsed');
+            
+            // Show step panel when algorithm runs
+            const runBtn = document.getElementById('runReingold');
+            if (runBtn) {
+                runBtn.addEventListener('click', () => {
+                    setTimeout(() => {
+                        const stepPanel = document.getElementById('stepPanel');
+                        if (stepPanel.classList.contains('collapsed')) {
+                            toggleStepPanel();
+                        }
+                    }, 100);
+                });
+            }
+        });
+    </script>
 </body>
 </html>

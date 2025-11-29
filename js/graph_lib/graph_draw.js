@@ -7,16 +7,29 @@
 export function resizeCanvas(canvas) {
     const rect = canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
+    
+    // If rect has no size, try to get parent container size
+    let width = rect.width;
+    let height = rect.height;
+    
+    if (width === 0 || height === 0) {
+        const parent = canvas.parentElement;
+        if (parent) {
+            const parentRect = parent.getBoundingClientRect();
+            width = parentRect.width;
+            height = parentRect.height;
+        }
+    }
 
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = rect.width + "px";
-    canvas.style.height = rect.height + "px";
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
 
     const ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
 
-    return { width: rect.width, height: rect.height };
+    return { width, height };
 }
 
 // Draw the full graph
