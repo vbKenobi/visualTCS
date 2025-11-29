@@ -8,8 +8,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/graph.css">
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 </head>
 <body>
+    <!-- Explanation Panel -->
+    <div class="explanation-panel" id="explanationPanel">
+        <div class="explanation-panel-header">
+            <h2>📚 Algorithm Explanation</h2>
+            <button class="close-panel-btn" onclick="toggleExplanationPanel()">×</button>
+        </div>
+        <div class="explanation-panel-content">
+            <div class="markdown-content" id="markdownContent">
+                Loading explanation...
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Button for Explanation Panel -->
+    <button class="toggle-explanation-btn" onclick="toggleExplanationPanel()">
+        📚 Explanation
+    </button>
+
     <!-- Top Navigation -->
     <nav class="top-nav">
         <div class="nav-left">
@@ -131,9 +151,14 @@
 
     <script type="module" src="js/graph_canvas.js"></script>
     <script src="page_js/bfsAndDfsPage.js"></script>
+    <!-- Markdown and Math Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <script type="module">
         // Initialize canvases after DOM is ready
         import { resizeCanvas } from './js/graph_lib/graph_draw.js';
+        import { loadMarkdown } from './js/markdown_loader.js';
         
         window.addEventListener('load', () => {
             const drawCanvas = document.getElementById('drawingCanvas');
@@ -146,6 +171,14 @@
                     resizeCanvas(vizCanvas);
                 }
             }, 100);
+            
+            // Wait for external libraries to load before loading markdown
+            setTimeout(() => {
+                console.log('Loading markdown...');
+                console.log('marked available:', typeof marked !== 'undefined');
+                console.log('renderMathInElement available:', typeof renderMathInElement !== 'undefined');
+                loadMarkdown('explanations/bfs_dfs.md', 'markdownContent');
+            }, 500);
         });
     </script>
     <script>
@@ -159,6 +192,16 @@
             const btn = document.getElementById('toggleCodeBtn');
             panel.classList.toggle('collapsed');
             btn.classList.toggle('hidden');
+        }
+
+        function toggleExplanationPanel() {
+            const panel = document.getElementById('explanationPanel');
+            if (panel) {
+                panel.classList.toggle('expanded');
+                console.log('Toggling explanation panel, expanded:', panel.classList.contains('expanded'));
+            } else {
+                console.error('Explanation panel not found!');
+            }
         }
 
         // Start with control panel open
