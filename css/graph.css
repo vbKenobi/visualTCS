@@ -129,6 +129,23 @@ body {
     border: 2px solid #333;
 }
 
+#inputCanvas {
+    width: 100%;
+    height: 450px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+    border-radius: 8px;
+    border: 2px solid #333;
+    cursor: crosshair;
+}
+
+#algoCanvas {
+    width: 100%;
+    height: 600px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+    border-radius: 8px;
+    border: 2px solid #00ffff;
+}
+
 #drawingCanvas {
     cursor: crosshair;
 }

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USTCON in Logspace - VisualTCS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/graph.css">
+    <style>
+        .algorithm-info {
+            background: #1a202c;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .algorithm-info h3 {
+            color: #00ffff;
+            margin-bottom: 0.5rem;
+        }
+        
+        .algorithm-info p {
+            color: #cbd5e0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        .step-description {
+            background: #2d3748;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border-left: 4px solid #00ffff;
+        }
+        
+        .step-description h4 {
+            color: #00ffff;
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .step-description p {
+            color: #cbd5e0;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #2d3748;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #9b59b6);
+            transition: width 0.3s ease;
+        }
+        
+        .step-counter {
+            color: #888;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .complexity-box {
+            background: #2d3748;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+        }
+        
+        .complexity-box h4 {
+            color: #00ff99;
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+        }
+        
+        .complexity-box .formula {
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            background: #1a202c;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🔬 Undirected ST-Connectivity in Logspace</h1>
+        <a href="index.html" class="back-button">← Back to Home</a>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Left Panel: Graph Builder -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Input Graph</h2>
+                <div class="controls">
+                    <button class="btn btn-primary" id="buildGraphBtn">Build Random Graph</button>
+                    <button class="btn btn-secondary" id="clearBtn">Clear</button>
+                </div>
+            </div>
+
+            <canvas id="inputCanvas"></canvas>
+
+            <div class="instructions">
+                <h3>Controls</h3>
+                <ul>
+                    <li><strong>Click</strong> to add a node</li>
+                    <li><strong>Click + Drag</strong> between nodes to create an edge</li>
+                    <li><strong>Double-click</strong> a node to set as s (green) or t (red)</li>
+                    <li><strong>Delete/Backspace</strong> to remove selected node/edge</li>
+                </ul>
+            </div>
+
+            <div class="algorithm-info">
+                <h3>Reingold's Algorithm (2004)</h3>
+                <p>
+                    Proves that undirected s-t connectivity can be solved using only 
+                    <strong>O(log n) space</strong>, establishing that <strong>L = SL</strong>.
+                </p>
+            </div>
+
+            <div class="complexity-box">
+                <h4>Key Result</h4>
+                <div class="formula">USTCON ∈ L</div>
+                <div class="formula" style="margin-top: 0.5rem;">Space: O(log n)</div>
+                <div class="formula" style="margin-top: 0.5rem;">Time: poly(n)</div>
+            </div>
+
+            <div id="statusMsg"></div>
+        </div>
+
+        <!-- Right Panel: Algorithm Visualization -->
+        <div class="viz-container">
+            <div class="viz-panel">
+                <div class="panel-header">
+                    <h2 id="vizTitle">Algorithm Steps</h2>
+                    <div class="controls">
+                        <button class="btn btn-secondary" id="prevBtn" disabled>← Previous</button>
+                        <button class="btn btn-primary" id="runAlgoBtn">Run Algorithm</button>
+                        <button class="btn btn-secondary" id="nextBtn" disabled>Next →</button>
+                    </div>
+                </div>
+                
+                <div class="step-counter" id="stepCounter">
+                    Ready to run algorithm
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+
+                <canvas id="algoCanvas"></canvas>
+                
+                <div class="step-description" id="stepDescription">
+                    <h4>Algorithm Overview</h4>
+                    <p>
+                        1. Create fixed expander graph H<br>
+                        2. Make input graph G₀ regular (B² degree)<br>
+                        3. Iteratively apply: G_k = G²_{k-1} ⊗ H<br>
+                        4. Solve connectivity on final graph G_L
+                    </p>
+                </div>
+            </div>
+
+            <div class="code-section">
+                <div class="code-tabs">
+                    <button class="code-tab active" data-tab="algo">Algorithm</button>
+                    <button class="code-tab" data-tab="complexity">Complexity</button>
+                </div>
+                
+                <div class="code-content active" id="algo-code">
+                    <pre><code>def reingold_algorithm(G, s, t, B=4):
+    # Step 1: Fixed expander H
+    H = create_expander(B)
+    
+    # Step 2: Make G regular (B² degree)
+    G_0 = make_regular(G, B²)
+    
+    # Step 3: Iterative zig-zag product
+    L = O(log n)
+    for k in range(1, L+1):
+        G_k = square(G_{k-1}) ⊗ H
+    
+    # Step 4: Solve on small-diameter graph
+    return solve_connectivity(G_L, s_L, t_L)
+
+# Zig-zag product: G ⊗ H
+def zigzag_product(G, H):
+    # Vertices: V(G) × V(H) 
+    # Edges: Combine rotation + zig-zag
+    return combined_graph</code></pre>
+                </div>
+
+                <div class="code-content" id="complexity-code">
+                    <pre><code># Space Complexity
+Space = O(log n)
+
+# Why logspace?
+- Store current vertex: O(log n)
+- Store position in H: O(log B) = O(1)
+- Iteration counter: O(log log n)
+Total: O(log n)
+
+# Key Properties
+- H is (B⁴, B, 1/4)-expander (fixed)
+- Each G_k has degree B
+- Diameter shrinks exponentially
+- After L = O(log n) iterations:
+  * Diameter = O(1)
+  * Degree = B (constant)
+  
+# Final graph can be exhaustively
+# searched in O(log n) space!</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/ustcon_lib/ustcon_canvas.js"></script>
+    <script src="page_js/bfsAndDfsPage.js"></script>
+</body>
+</html>
