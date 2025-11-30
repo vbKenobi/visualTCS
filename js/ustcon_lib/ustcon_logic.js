@@ -1,353 +1,205 @@
-// ustcon_logic.js
-// ----------------------------------------------------
-// Logic for Undirected ST-Connectivity in Logspace
-// Implements Reingold's algorithm using ROTATION MAPS (NOT explicit graphs!)
+const D = 16;
+const H_SIZE = D * D;
 
-// KEY INSIGHT: We never store entire graphs - only rotation maps!
-// Space: O(log n) to store current vertex position + O(log D) for neighbor index
-
-// ----------------------------------------------------
-// Rotation Map - The key to logspace computation
-// ----------------------------------------------------
-export class RotationMap {
-    constructor(graph) {
-        this.map = new Map();
-        this.degree = 0;
-        
-        // Build rotation map from graph
-        // Rot_G(v,i) = i-th neighbor of vertex v
-        graph.nodes.forEach(node => {
-            const neighbors = [];
-            graph.edges.forEach(edge => {
-                if (edge.node1 === node) neighbors.push(edge.node2.id);
-                if (edge.node2 === node) neighbors.push(edge.node1.id);
-            });
-            this.map.set(node.id, neighbors);
-            this.degree = Math.max(this.degree, neighbors.length);
-        });
+class MemoryRegisters {
+    constructor(N) {
+        this.N = N;
+        this.N2 = N * N;
+        this.bits_per_vertex = Math.ceil(Math.log2(Math.max(2, this.N2)));
+        this.registers = { v: 0, h: 0, path_step: 0, level: 0, edge_type: 0 };
     }
-    
-    // O(1) time, O(log n) space to call
-    rotate(v, i) {
-        const neighbors = this.map.get(v) || [];
-        if (neighbors.length === 0) return v;
-        return neighbors[i % neighbors.length];
+    set(name, value) { this.registers[name] = value; }
+    get(name) { return this.registers[name]; }
+    getTotalBits() {
+        return 2 * this.bits_per_vertex + Math.ceil(Math.log2(8)) + 2;
     }
+    getState() { return {...this.registers}; }
 }
 
-// ----------------------------------------------------
-// Make graph D-regular using rotation map
-// ----------------------------------------------------
-export function makeRegularRotationMap(rotMap, D) {
-    const regularMap = new Map();
-    
-    rotMap.map.forEach((neighbors, v) => {
-        const regularNeighbors = [...neighbors];
-        while (regularNeighbors.length < D) {
-            regularNeighbors.push(v); // Self-loop
-        }
-        regularMap.set(v, regularNeighbors.slice(0, D));
-    });
-    
-    return {
-        map: regularMap,
-        degree: D,
-        rotate: function(v, i) {
-            const neighbors = this.map.get(v) || [];
-            return neighbors[i % neighbors.length] || v;
-        }
-    };
+function rot_G_16reg(adj, N, v, i) {
+    const a = Math.floor(v / N);
+    const b = v % N;
+    if (i === 0) return ((a + 1) % N) * N + b;
+    if (i === 1) return ((a - 1 + N) % N) * N + b;
+    if (i === 2) return a * N + ((b + 1) % N);
+    if (i === 3) return a * N + ((b - 1 + N) % N);
+    if (i >= 4 && i < 10) {
+        const j = i - 4;
+        if (adj[a] && j < adj[a].length && adj[a][j] !== a) return adj[a][j] * N + b;
+        return v;
+    }
+    if (i >= 10 && i < 16) {
+        const j = i - 10;
+        if (adj[b] && j < adj[b].length && adj[b][j] !== b) return a * N + adj[b][j];
+        return v;
+    }
+    return v;
 }
 
-// ----------------------------------------------------
-// Expander Graph H
-// ----------------------------------------------------
-export class ExpanderGraph {
-    constructor(B) {
-        this.B = B;
-        this.size = B * B;
-        this.nodes = [];
-        this.edges = [];
-        
-        this.generateExpander();
-        
-        // Create rotation map
-        this.rotationMap = new RotationMap({
-            nodes: this.nodes.map((_, i) => ({id: i})),
-            edges: this.edges.map(e => ({
-                node1: {id: e.from},
-                node2: {id: e.to}
-            }))
-        });
+function rot_H(h, i) {
+    const x = Math.floor(h / D);
+    const y = h % D;
+    const gens = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1],[2,0],[-2,0],[0,2],[0,-2],[2,1],[1,2],[-2,-1],[-1,-2]];
+    const [dx, dy] = gens[i % 16];
+    return ((x + dx + D) % D) * D + ((y + dy + D) % D);
+}
+
+function rot_zigzag(adj, N, v_h, i) {
+    const v = Math.floor(v_h / H_SIZE);
+    let h = v_h % H_SIZE;
+    const i1 = Math.floor(i / D);
+    const i2 = i % D;
+    h = rot_H(h, i1);
+    const j = h % D;
+    const v_new = rot_G_16reg(adj, N, v, j);
+    h = rot_H(h, i2);
+    return v_new * H_SIZE + h;
+}
+
+function rot_Gexp(adj, N, v_h, i, level) {
+    if (level === 0) {
+        const v = Math.floor(v_h / H_SIZE);
+        const h = v_h % H_SIZE;
+        return rot_G_16reg(adj, N, v, i % D) * H_SIZE + h;
     }
+    let current = v_h;
+    for (let sq = 0; sq < 8; sq++) current = rot_zigzag(adj, N, current, i);
+    return current;
+}
 
-    generateExpander() {
-        for (let i = 0; i < this.size; i++) {
-            this.nodes.push({id: i, label: `h${i}`});
-        }
-
-        const generators = this.getGenerators(this.B);
-        for (let i = 0; i < this.size; i++) {
-            for (let gen of generators) {
-                const j = (i + gen) % this.size;
-                if (!this.hasEdge(i, j)) {
-                    this.edges.push({from: i, to: j});
+function ustcon(adj, N, s, t) {
+    const N2 = N * N;
+    const L = Math.max(1, 2 * Math.ceil(Math.log2(Math.max(2, D * N2))));
+    const s_ext = s * N;
+    for (let path_len = 1; path_len <= Math.min(50, 2 * N2); path_len++) {
+        const total_paths = Math.pow(3, path_len);
+        for (let path_idx = 0; path_idx < total_paths; path_idx++) {
+            let current = s_ext * H_SIZE;
+            let temp_idx = path_idx;
+            for (let step = 0; step < path_len; step++) {
+                const edge_type = temp_idx % 3;
+                temp_idx = Math.floor(temp_idx / 3);
+                for (let level = L - 1; level >= 0; level--) {
+                    const edge_idx = (edge_type * D + (step % D)) % (D * D);
+                    current = rot_Gexp(adj, N, current, edge_idx, level);
                 }
             }
+            const final_v = Math.floor(current / H_SIZE);
+            const final_a = Math.floor(final_v / N);
+            if (final_a === t) return true;
         }
     }
-
-    getGenerators(degree) {
-        const gens = [];
-        const step = Math.floor(this.size / degree);
-        for (let i = 1; i <= Math.floor(degree / 2); i++) {
-            gens.push(i * step);
-            gens.push(this.size - i * step);
-        }
-        return gens.slice(0, degree);
-    }
-
-    hasEdge(i, j) {
-        return this.edges.some(e => 
-            (e.from === i && e.to === j) || (e.from === j && e.to === i)
-        );
-    }
+    return false;
 }
 
-// ----------------------------------------------------
-// Helper: Make regular graph for visualization
-// ----------------------------------------------------
-export function makeRegular(graph, B) {
-    const targetDegree = B * B;
-    const regularGraph = {
-        nodes: [...graph.nodes],
-        edges: [],
-        degree: targetDegree
-    };
-
-    graph.edges.forEach(edge => {
-        regularGraph.edges.push({
-            node1: edge.node1,
-            node2: edge.node2,
-            isSelfLoop: false
-        });
-    });
-
-    graph.nodes.forEach(node => {
-        const currentDegree = regularGraph.edges.filter(e => 
-            e.node1 === node || e.node2 === node
-        ).length;
-        
-        const loopsNeeded = Math.max(0, targetDegree - currentDegree);
-        for (let i = 0; i < loopsNeeded; i++) {
-            regularGraph.edges.push({
-                node1: node,
-                node2: node,
-                isSelfLoop: true
-            });
-        }
-    });
-
-    return regularGraph;
-}
-
-// ----------------------------------------------------
-// Reingold's Algorithm - Using Rotation Maps!
-// ----------------------------------------------------
 export class ReingoldAlgorithm {
-    constructor(graph, s, t, B = 4) {
+    constructor(graph, s, t, B = 2) {
         this.originalGraph = graph;
-        this.s = s;
-        this.t = t;
+        this.s = typeof s === 'object' ? s.id : s;
+        this.t = typeof t === 'object' ? t.id : t;
         this.B = B;
-        this.L = Math.min(4, Math.ceil(Math.log2(graph.nodes.length)));
-        this.steps = [];
-        this.currentStep = 0;
+        this.D = D;
+        this.expanderSize = H_SIZE;
+        this.stages = [];
+        this.currentStage = 0;
+        const n = Math.max(2, graph.nodes.length);
+        this.N = n;
+        this.L = Math.max(1, Math.ceil(Math.log2(n)));
+        this.memory = new MemoryRegisters(n);
+        this.adj = this.buildAdj(graph);
+        this.connected = this.checkConnectivity();
+    }
+
+    buildAdj(graph) {
+        const adj = {};
+        graph.nodes.forEach((n, i) => { adj[i] = []; });
+        graph.edges.forEach(e => {
+            const i1 = typeof e.node1 === 'object' ? graph.nodes.indexOf(e.node1) : e.node1;
+            const i2 = typeof e.node2 === 'object' ? graph.nodes.indexOf(e.node2) : e.node2;
+            if (i1 >= 0 && i2 >= 0) {
+                adj[i1].push(i2);
+                adj[i2].push(i1);
+            }
+        });
+        return adj;
+    }
+
+    checkConnectivity() {
+        if (this.N < 2) return false;
+        const sIdx = this.s;
+        const tIdx = this.t;
+        if (sIdx === tIdx) return true;
+        return ustcon(this.adj, this.N, sIdx, tIdx);
     }
 
     initialize() {
-        console.log('Initializing algorithm with ROTATION MAPS...');
-        
-        // Step 1: Create fixed expander H
-        this.H = new ExpanderGraph(this.B);
-        this.steps.push({
-            type: 'expander',
-            graph: this.H,
-            description: `Fixed expander H (${this.B}⁴=${this.H.size} vertices, degree ${this.B}). Stored as ROTATION MAP - Space: O(1)!`
-        });
-
-        // Step 2: Build rotation map for input graph
-        const G0 = makeRegular(this.originalGraph, this.B);
-        const G0_rot = new RotationMap(this.originalGraph);
-        const G0_regular = makeRegularRotationMap(G0_rot, this.B * this.B);
-        
-        this.steps.push({
-            type: 'regularize',
-            graph: G0,
-            description: `G₀ rotation map: Rot(v,i) returns i-th neighbor. Degree ${G0.degree}. Space: O(log n) per query!`
-        });
-
-        // Step 3: Squaring via rotation map - create a conceptual squared graph
-        const G_squared = this.createSquaredGraphVisualization(G0);
-        this.steps.push({
-            type: 'square',
-            graph: G_squared,
-            description: `Squaring: Rot_{G²}(v,i) = Rot_G(Rot_G(v,i₁),i₂) where i=i₁D+i₂. No explicit G² needed!`
-        });
-
-        // Step 4: Zig-zag via rotation map - create a conceptual zig-zag product
-        const G_zigzag = this.createZigzagGraphVisualization(G0, this.H);
-        this.steps.push({
-            type: 'zigzag',
-            graph: G_zigzag,
-            description: `Zig-zag (v,i)→(v',i'): (1) rotate in H-cloud, (2) move to G-neighbor, (3) rotate in new cloud. Space: O(log n)+O(1)!`
-        });
-
-        // Step 5: Final result - show the same structure but as "solved"
-        this.steps.push({
-            type: 'solve',
-            graph: G0,
-            description: `After L=${this.L} iterations: diameter ~O(log n), degree ${this.B}. Exhaustive walk uses O(log n) space total!`
-        });
-        
-        console.log('Algorithm initialized with', this.steps.length, 'steps');
-    }
-    
-    // Create a visualization of the squared graph (adds 2-hop connections)
-    createSquaredGraphVisualization(G0) {
-        const squaredGraph = {
-            nodes: [...G0.nodes],
-            edges: [...G0.edges],
-            degree: G0.degree * G0.degree
-        };
-        
-        // Add edges between vertices that are 2 hops apart
-        const adjList = new Map();
-        G0.nodes.forEach(node => adjList.set(node.id, new Set()));
-        
-        G0.edges.forEach(edge => {
-            if (!edge.isSelfLoop) {
-                adjList.get(edge.node1.id).add(edge.node2.id);
-                adjList.get(edge.node2.id).add(edge.node1.id);
-            }
-        });
-        
-        // Find 2-hop neighbors
-        const twoHopEdges = new Set();
-        G0.nodes.forEach(node => {
-            const neighbors = adjList.get(node.id);
-            neighbors.forEach(neighbor => {
-                const secondHop = adjList.get(neighbor);
-                secondHop.forEach(finalNode => {
-                    if (finalNode !== node.id) {
-                        const edgeKey = `${Math.min(node.id, finalNode)}-${Math.max(node.id, finalNode)}`;
-                        if (!twoHopEdges.has(edgeKey)) {
-                            twoHopEdges.add(edgeKey);
-                            const node1 = G0.nodes.find(n => n.id === node.id);
-                            const node2 = G0.nodes.find(n => n.id === finalNode);
-                            if (node1 && node2) {
-                                squaredGraph.edges.push({
-                                    node1: node1,
-                                    node2: node2,
-                                    isSelfLoop: false
-                                });
-                            }
-                        }
-                    }
-                });
-            });
-        });
-        
-        return squaredGraph;
-    }
-    
-    // Create a visualization of the zig-zag product (conceptual - product graph)
-    createZigzagGraphVisualization(G, H) {
-        // Create a smaller conceptual product graph for visualization
-        // In reality, this would be |V(G)| × |V(H)| vertices
-        // For visualization, we'll create a subset showing the structure
-        
-        const productGraph = {
-            nodes: [],
-            edges: [],
-            degree: H.B
-        };
-        
-        // Create product vertices (v, h) for each v in G and a subset of h in H
-        const hSubset = Math.min(4, H.nodes.length); // Use up to 4 H vertices per G vertex
-        let nodeId = 0;
-        
-        G.nodes.forEach((gNode, gIdx) => {
-            for (let h = 0; h < hSubset; h++) {
-                productGraph.nodes.push({
-                    id: nodeId++,
-                    label: `(${gNode.id},${h})`,
-                    gVertex: gNode.id,
-                    hVertex: h
-                });
-            }
-        });
-        
-        // Add edges based on zig-zag product structure
-        // Edge in product: internal H-edges and cross-G edges
-        productGraph.nodes.forEach((node1, i) => {
-            productGraph.nodes.forEach((node2, j) => {
-                if (i >= j) return;
-                
-                // Same G vertex, different H vertex (internal H-edge)
-                if (node1.gVertex === node2.gVertex && 
-                    Math.abs(node1.hVertex - node2.hVertex) <= 1) {
-                    productGraph.edges.push({
-                        node1: node1,
-                        node2: node2,
-                        isSelfLoop: false
-                    });
-                }
-                
-                // Adjacent G vertices, same H vertex pattern (cross-edge)
-                const gEdgeExists = G.edges.some(e => 
-                    (e.node1.id === node1.gVertex && e.node2.id === node2.gVertex) ||
-                    (e.node2.id === node1.gVertex && e.node1.id === node2.gVertex)
-                );
-                
-                if (gEdgeExists && node1.hVertex === node2.hVertex) {
-                    productGraph.edges.push({
-                        node1: node1,
-                        node2: node2,
-                        isSelfLoop: false
-                    });
-                }
-            });
-        });
-        
-        return productGraph;
+        this.createDemoAnimation();
+        this.createCodeExecutionStages();
+        return this.stages;
     }
 
-    nextStep() {
-        if (this.currentStep < this.steps.length - 1) {
-            this.currentStep++;
-            return this.steps[this.currentStep];
+    createDemoAnimation() {
+        const G = this.createDemoG();
+        const H = this.createDemoH();
+        const frames = [];
+        frames.push({ phase: 'two-clouds', title: 'Zig-Zag Product: G ⊛ H', subtitle: 'Each vertex v → cloud of |H| copies', G, H, cloud0: true, cloud1: true, cloudSize: H.nodes.length, progress: 0.1 });
+        frames.push({ phase: 'edge-complete', title: 'ZIG-ZAG-ZIG Walk', subtitle: 'k₁ in H → cross via G → k₂ in H', G, H, cloud0: true, cloud1: true, cloudSize: H.nodes.length, edgeStart: {cloud:0,pos:0}, edgeEnd: {cloud:1,pos:2}, walkPhase: 'complete', progress: 0.4 });
+        frames.push({ phase: 'delete-highlight', title: 'Delete Used Edges', subtitle: 'Intermediate edges removed', G, H, cloud0: true, cloud1: true, showDeletedEdges: true, walkPhase: 'delete', progress: 0.6 });
+        frames.push({ phase: 'delete-complete', title: 'Result', subtitle: 'Edge (v,a) → (u,c) in G ⊛ H', G, H, cloud0: true, cloud1: true, showFinalEdgeOnly: true, walkPhase: 'after-delete', progress: 0.8 });
+        frames.push({ phase: 'insight', title: 'Key Insight', subtitle: 'D² → 16. Never store the graph!', G, H, showInsight: true, degreeG: G.degree, degreeResult: 16, progress: 1.0 });
+        this.stages.push({ name: 'Zig-Zag Product Demo', description: 'Edge creation in G ⊛ H', type: 'demo-animation', frames });
+    }
+
+    createDemoG() {
+        const nodes = [{id:0,label:'0'},{id:1,label:'1'},{id:2,label:'2'},{id:3,label:'3'}];
+        const edges = [{node1:nodes[0],node2:nodes[1]},{node1:nodes[1],node2:nodes[2]},{node1:nodes[2],node2:nodes[3]},{node1:nodes[3],node2:nodes[0]},{node1:nodes[0],node2:nodes[2]},{node1:nodes[1],node2:nodes[3]}];
+        return {nodes, edges, degree: 4};
+    }
+
+    createDemoH() {
+        const nodes = [{id:0,label:'a'},{id:1,label:'b'},{id:2,label:'c'},{id:3,label:'d'}];
+        const edges = [{node1:nodes[0],node2:nodes[1]},{node1:nodes[1],node2:nodes[2]},{node1:nodes[2],node2:nodes[3]},{node1:nodes[3],node2:nodes[0]}];
+        return {nodes, edges, degree: 2};
+    }
+
+    createCodeExecutionStages() {
+        const n = this.N;
+        const logN = Math.ceil(Math.log2(Math.max(2, n)));
+        const logH = Math.ceil(Math.log2(H_SIZE));
+        const spaceUsed = this.memory.getTotalBits();
+        const algorithmCode = [
+            'function USTCON(G, s, t):',
+            '  Build G_reg: N² vertices, 16-regular',
+            '  L = O(log(D × N²)) = ' + (2 * Math.ceil(Math.log2(Math.max(2, D * n * n)))),
+            '  ',
+            '  for path_len = 1 to O(N²):',
+            '    for each path (edge sequence):',
+            '      for level = L-1 down to 0:',
+            '        v = rot_Gexp(v, edge, level)',
+            '  ',
+            '  return reached t?'
+        ];
+        this.stages.push({ name: 'Algorithm Start', type: 'code-execution', code: algorithmCode, highlightLine: 0, stats: { '|V|': n, 's': this.s, 't': this.t, 'Space': spaceUsed + ' bits = O(log N)' }});
+        this.stages.push({ name: 'Build G_16reg', type: 'code-execution', code: algorithmCode, highlightLine: 1, stats: { 'Original |V|': n, 'G_reg |V|': n * n + ' (N²)', 'Degree': '16-regular', 'Space': spaceUsed + ' bits' }});
+        let implicitV = n * n;
+        for (let k = 1; k <= Math.min(this.L, 3); k++) {
+            const newV = implicitV * H_SIZE;
+            this.stages.push({ name: 'Iteration ' + k + ': Zig-Zag × 8', type: 'code-execution', code: algorithmCode, highlightLine: 6, stats: { 'k': k + ' of ' + this.L, '|V| (implicit)': this.formatNumber(implicitV) + ' → ' + this.formatNumber(newV), 'Degree': '16 (maintained)', 'Space': spaceUsed + ' bits = O(log N)' }, spaceNote: 'Graph has ' + this.formatNumber(newV) + ' vertices but we store only ' + spaceUsed + ' bits!'});
+            implicitV = newV;
         }
-        return null;
+        this.stages.push({ name: 'Path Enumeration', type: 'code-execution', code: algorithmCode, highlightLine: 5, stats: { 'Path lengths': '1 to O(N²)', 'Each path': '3 edge types per step', 'Memory': 'O(log N) bits only', 'Space': spaceUsed + ' bits' }});
+        this.stages.push({ name: 'Result', type: 'code-execution', code: algorithmCode, highlightLine: 9, stats: { 'Final |V| (implicit)': this.formatNumber(implicitV), 'Space used': spaceUsed + ' bits = O(log N)', 's → t': this.connected ? 'CONNECTED ✓' : 'NOT CONNECTED ✗' }, result: this.connected, conclusion: true });
     }
 
-    prevStep() {
-        if (this.currentStep > 0) {
-            this.currentStep--;
-            return this.steps[this.currentStep];
-        }
-        return null;
+    formatNumber(n) {
+        if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+        if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+        if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+        return String(n);
     }
 
-    getCurrentStep() {
-        return this.steps[this.currentStep];
-    }
-
-    getProgress() {
-        return {
-            current: this.currentStep + 1,
-            total: this.steps.length,
-            percentage: ((this.currentStep + 1) / this.steps.length) * 100
-        };
-    }
+    getCurrentStage() { return this.stages[this.currentStage] || null; }
+    nextStage() { if (this.currentStage < this.stages.length - 1) this.currentStage++; return this.getCurrentStage(); }
+    prevStage() { if (this.currentStage > 0) this.currentStage--; return this.getCurrentStage(); }
+    getProgress() { return { current: this.currentStage + 1, total: this.stages.length, percentage: Math.round(((this.currentStage + 1) / this.stages.length) * 100) }; }
 }

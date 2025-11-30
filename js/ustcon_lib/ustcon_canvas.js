@@ -20,6 +20,9 @@ let dragStartNode = null;
 
 let algorithm = null;
 let isAlgorithmRunning = false;
+let currentFrameIndex = 0;
+let animationTimer = null;
+let isAnimating = false;
 
 // ----------------------------------------------------
 // Canvas setup
@@ -38,10 +41,9 @@ window.addEventListener("resize", () => {
     resizeAlgoCanvas(algoCanvas);
     drawGraph(inputCtx, inputGraph);
     if (algorithm) {
-        const step = algorithm.getCurrentStep();
-        if (step) {
-            const { width, height } = algoCanvas.getBoundingClientRect();
-            drawAlgorithmStep(algoCtx, step, { width, height });
+        const stage = algorithm.getCurrentStage();
+        if (stage) {
+            displayStage(stage);
         }
     }
 });
@@ -222,9 +224,22 @@ if (nextBtn) {
     nextBtn.addEventListener("click", () => {
         console.log("Next button clicked!");
         if (!algorithm) return;
-        const step = algorithm.nextStep();
-        if (step) {
-            displayStep(step);
+        
+        // Stop any ongoing animation
+        if (animationTimer) {
+            clearInterval(animationTimer);
+            animationTimer = null;
+            isAnimating = false;
+        }
+        // Stop code auto-advance
+        if (codeAdvanceTimer) {
+            clearInterval(codeAdvanceTimer);
+            codeAdvanceTimer = null;
+        }
+        
+        const stage = algorithm.nextStage();
+        if (stage) {
+            displayStage(stage);
             updateProgress();
         }
     });
@@ -235,9 +250,22 @@ if (prevBtn) {
     prevBtn.addEventListener("click", () => {
         console.log("Previous button clicked!");
         if (!algorithm) return;
-        const step = algorithm.prevStep();
-        if (step) {
-            displayStep(step);
+        
+        // Stop any ongoing animation
+        if (animationTimer) {
+            clearInterval(animationTimer);
+            animationTimer = null;
+            isAnimating = false;
+        }
+        // Stop code auto-advance
+        if (codeAdvanceTimer) {
+            clearInterval(codeAdvanceTimer);
+            codeAdvanceTimer = null;
+        }
+        
+        const stage = algorithm.prevStage();
+        if (stage) {
+            displayStage(stage);
             updateProgress();
         }
     });
@@ -249,55 +277,281 @@ if (prevBtn) {
 function runReingoldAlgorithm() {
     console.log('Starting Reingold algorithm...');
     console.log('Input graph:', inputGraph);
+    console.log('Input graph nodes:', inputGraph.nodes);
+    console.log('Input graph edges:', inputGraph.edges);
     console.log('s node:', sNode);
     console.log('t node:', tNode);
     
     try {
-        algorithm = new ReingoldAlgorithm(inputGraph, sNode, tNode, 4);
+        // Use B=2 for cleaner visualization (smaller clouds)
+        algorithm = new ReingoldAlgorithm(inputGraph, sNode, tNode, 2);
         console.log('Algorithm created:', algorithm);
+        console.log('L (iterations):', algorithm.L);
+        console.log('B:', algorithm.B);
         
         algorithm.initialize();
-        console.log('Algorithm initialized, steps:', algorithm.steps.length);
+        console.log('Algorithm initialized!');
+        console.log('Stages:', algorithm.stages);
+        console.log('Number of stages:', algorithm.stages ? algorithm.stages.length : 'undefined');
+        console.log('Current stage index:', algorithm.currentStage);
         
         showStatus("Algorithm initialized!", "success");
         
-        const firstStep = algorithm.getCurrentStep();
-        console.log('First step:', firstStep);
+        const firstStage = algorithm.getCurrentStage();
+        console.log('First stage:', firstStage);
         
-        displayStep(firstStep);
-        updateProgress();
+        if (firstStage) {
+            displayStage(firstStage);
+            updateProgress();
+        } else {
+            console.error('First stage is null/undefined!');
+            showStatus("Error: Could not get first stage", "error");
+        }
         
-        document.getElementById("prevBtn").disabled = false;
-        document.getElementById("nextBtn").disabled = false;
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+        if (prevBtn) prevBtn.disabled = false;
+        if (nextBtn) nextBtn.disabled = false;
     } catch (error) {
         console.error('Error running algorithm:', error);
+        console.error('Error stack:', error.stack);
         showStatus("Error: " + error.message, "error");
     }
 }
 
-function displayStep(step) {
+// Auto-advance through code execution stages
+let codeAdvanceTimer = null;
+
+function autoAdvanceCodeStages() {
+    if (!algorithm) return;
+    
+    const stages = algorithm.stages;
+    let currentIndex = algorithm.currentStage;
+    
+    // Find first code-execution stage after demo
+    let foundCodeStage = false;
+    for (let i = currentIndex + 1; i < stages.length; i++) {
+        if (stages[i].type === 'code-execution') {
+            foundCodeStage = true;
+            break;
+        }
+    }
+    
+    if (!foundCodeStage) return;
+    
+    // Auto-advance through remaining stages
+    codeAdvanceTimer = setInterval(() => {
+        const nextStage = algorithm.nextStage();
+        if (nextStage) {
+            displayStage(nextStage);
+            updateProgress();
+            
+            // Stop if we've reached the end
+            if (algorithm.currentStage >= stages.length - 1) {
+                clearInterval(codeAdvanceTimer);
+                codeAdvanceTimer = null;
+            }
+        } else {
+            clearInterval(codeAdvanceTimer);
+            codeAdvanceTimer = null;
+        }
+    }, 2000); // 2 seconds per code stage
+}
+
+function displayStage(stage) {
+    if (!stage) {
+        console.error('No stage to display');
+        return;
+    }
+    
+    // Stop any ongoing animation
+    if (animationTimer) {
+        clearInterval(animationTimer);
+        animationTimer = null;
+    }
+    
     const rect = algoCanvas.getBoundingClientRect();
     console.log('Canvas dimensions:', rect.width, rect.height);
-    console.log('Displaying step:', step);
+    console.log('Displaying stage:', stage);
+    console.log('Stage type:', stage.type);
+    console.log('Stage frames:', stage.frames ? stage.frames.length : 0);
     
-    drawAlgorithmStep(algoCtx, step, { width: rect.width, height: rect.height });
-    
-    // Update description
+    // Update description panel with enhanced info
     const desc = document.getElementById("stepDescription");
-    desc.innerHTML = `
-        <h4>Step ${algorithm.currentStep + 1}: ${getStepTitle(step.type)}</h4>
-        <p>${step.description}</p>
-    `;
+    if (desc) {
+        let memoryHtml = '';
+        if (stage.memory && typeof stage.memory === 'object') {
+            memoryHtml = '<div style="margin-top: 10px; padding: 8px; background: #1a1a2e; border-radius: 4px; font-size: 11px;">';
+            memoryHtml += '<strong style="color: #34d399;">💾 Memory:</strong><br>';
+            for (const [key, value] of Object.entries(stage.memory)) {
+                if (typeof value === 'object') {
+                    memoryHtml += `<span style="color: #f0abfc;">${key}:</span><br>`;
+                    for (const [subKey, subVal] of Object.entries(value)) {
+                        memoryHtml += `  <span style="color: #94a3b8;">${subKey}:</span> <span style="color: #fbbf24;">${subVal}</span><br>`;
+                    }
+                } else {
+                    memoryHtml += `<span style="color: #94a3b8;">${key}:</span> <span style="color: #fbbf24;">${value}</span><br>`;
+                }
+            }
+            memoryHtml += '</div>';
+        }
+        
+        desc.innerHTML = `
+            <h4>${stage.name}</h4>
+            <p>${stage.description}</p>
+            ${memoryHtml}
+        `;
+    }
+    
+    // If stage has animation frames, auto-play them
+    if (stage.frames && stage.frames.length > 1) {
+        currentFrameIndex = 0;
+        isAnimating = true;
+        
+        // Show first frame immediately
+        displayFrame(stage, 0);
+        
+        // Auto-animate through frames (slower for better understanding)
+        animationTimer = setInterval(() => {
+            currentFrameIndex++;
+            if (currentFrameIndex >= stage.frames.length) {
+                clearInterval(animationTimer);
+                animationTimer = null;
+                isAnimating = false;
+                currentFrameIndex = stage.frames.length - 1;
+                
+                // After demo animation, auto-advance through code execution stages
+                if (stage.type === 'demo-animation') {
+                    autoAdvanceCodeStages();
+                }
+            }
+            displayFrame(stage, currentFrameIndex);
+        }, 1500); // 1.5 seconds between frames for clarity
+    } else if (stage.type === 'demo-animation') {
+        // Demo animation with single frame - just display and then auto-advance
+        displayFrame(stage, 0);
+        // Wait a bit then advance to code stages
+        setTimeout(() => autoAdvanceCodeStages(), 2000);
+    } else if (stage.type === 'code-execution') {
+        // Code execution stage - just display
+        displayFrame(stage, 0);
+    } else {
+        // Single frame or legacy types, just display it
+        const graphToShow = stage.graph;
+        if (graphToShow || stage.type === 'code-walkthrough' || stage.type === 'overview') {
+            displayFrame(stage, 0);
+        } else {
+            console.error('No graph to display!');
+            algoCtx.clearRect(0, 0, rect.width * 2, rect.height * 2);
+            algoCtx.fillStyle = '#ff4444';
+            algoCtx.font = '16px Arial';
+            algoCtx.textAlign = 'center';
+            algoCtx.fillText('No graph data available for this stage', rect.width / 2, rect.height / 2);
+        }
+    }
+}
+
+function displayFrame(stage, frameIndex) {
+    const rect = algoCanvas.getBoundingClientRect();
+    const frame = stage.frames && stage.frames[frameIndex] ? stage.frames[frameIndex] : null;
+    
+    // For demo-animation, pass the frame with type
+    if (stage.type === 'demo-animation') {
+        const stepData = frame ? { ...frame, type: stage.type } : { type: stage.type, ...stage };
+        drawAlgorithmStep(algoCtx, stepData, { width: rect.width, height: rect.height });
+    } else if (stage.type === 'code-execution') {
+        // For code-execution, the stage itself has all the data (code, stats, etc)
+        const stepData = { ...stage, type: 'code-execution' };
+        drawAlgorithmStep(algoCtx, stepData, { width: rect.width, height: rect.height });
+    } else if (frame || stage.graph) {
+        const graphData = frame || stage.graph;
+        // Build step data combining frame and stage info (legacy format)
+        const stepData = { 
+            // Graph data
+            graph: graphData, 
+            nodes: graphData.nodes || (graphData.graph && graphData.graph.nodes),
+            edges: graphData.edges || (graphData.graph && graphData.graph.edges),
+            
+            // Type info - frame can override stage type
+            type: (frame && frame.type) || stage.type,
+            
+            // Descriptions
+            description: (frame && frame.description) || stage.description,
+            name: stage.name,
+            
+            // Complexity and memory
+            complexity: stage.complexity,
+            codeStep: stage.codeStep,
+            memory: stage.memory,
+            
+            // Highlighting
+            highlightEdges: frame && frame.highlightEdges,
+            highlightColor: frame && frame.highlightColor,
+            highlightNode: frame && frame.highlightNode,
+            highlightNodes: frame && frame.highlightNodes,
+            
+            // Zigzag-specific
+            clouds: frame && frame.clouds,
+            cloudInfo: frame && frame.cloudInfo,
+            patternSteps: frame && frame.patternSteps,
+            stats: frame && frame.stats,
+            infoBox: frame && frame.infoBox,
+            
+            // Solve result
+            result: stage.result,
+            resultColor: stage.resultColor,
+            
+            // Iteration info
+            iteration: stage.iteration
+        };
+        
+        drawAlgorithmStep(algoCtx, stepData, { width: rect.width, height: rect.height });
+        
+        // Don't overlay for code-walkthrough or overview (they have their own panels)
+        if (stage.type !== 'code-walkthrough' && stage.type !== 'overview' && 
+            stage.type !== 'demo-animation' && stage.type !== 'code-execution') {
+            // Update complexity display in top-right
+            algoCtx.save();
+            algoCtx.fillStyle = '#161b22';
+            algoCtx.fillRect(rect.width - 250, 10, 240, 60);
+            algoCtx.strokeStyle = '#2d333b';
+            algoCtx.strokeRect(rect.width - 250, 10, 240, 60);
+            algoCtx.fillStyle = '#00ffff';
+            algoCtx.font = 'bold 12px Inter';
+            algoCtx.textAlign = 'left';
+            algoCtx.fillText('Space Complexity:', rect.width - 240, 30);
+            algoCtx.fillStyle = '#e5e5e5';
+            algoCtx.font = '11px Inter';
+            const complexityText = typeof stage.complexity === 'string' ? stage.complexity : 'O(log n)';
+            algoCtx.fillText(complexityText, rect.width - 240, 50);
+            algoCtx.restore();
+        }
+    } else {
+        // No frame or graph data
+        algoCtx.clearRect(0, 0, rect.width * 2, rect.height * 2);
+        algoCtx.fillStyle = '#f8d717';
+        algoCtx.font = '16px Arial';
+        algoCtx.textAlign = 'center';
+        algoCtx.fillText('Loading visualization...', rect.width / 2, rect.height / 2);
+    }
 }
 
 function updateProgress() {
     const progress = algorithm.getProgress();
-    document.getElementById("stepCounter").textContent = 
-        `Step ${progress.current} of ${progress.total}`;
-    document.getElementById("progressFill").style.width = `${progress.percentage}%`;
+    const stepCounter = document.getElementById("stepCounter");
+    const progressFill = document.getElementById("progressFill");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
     
-    document.getElementById("prevBtn").disabled = (progress.current === 1);
-    document.getElementById("nextBtn").disabled = (progress.current === progress.total);
+    if (stepCounter) {
+        stepCounter.textContent = `Stage ${progress.current} of ${progress.total}`;
+    }
+    if (progressFill) {
+        progressFill.style.width = `${progress.percentage}%`;
+    }
+    
+    if (prevBtn) prevBtn.disabled = (progress.current === 1);
+    if (nextBtn) nextBtn.disabled = (progress.current === progress.total);
 }
 
 function getStepTitle(type) {
