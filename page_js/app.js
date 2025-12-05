@@ -192,3 +192,4 @@ function initCardAnimation(cardId){
 initCardAnimation("shortestPathCard");
 initCardAnimation("bfsDfsCard");
 initCardAnimation("graphLayoutCard");
+initCardAnimation("nofCard");
