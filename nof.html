@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOF Complexity & Behrend's Construction - VisualTCS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/graph.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <style>
+        .nof-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .nof-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .nof-input-group label {
+            font-size: 12px;
+            color: #8b949e;
+            font-weight: 500;
+        }
+        .nof-input-group input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            background: #161b22;
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+        .nof-input-group input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .party-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .party-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .alice-dot { background: #f87171; }
+        .bob-dot { background: #4ade80; }
+        .charlie-dot { background: #60a5fa; }
+        
+        .mode-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .mode-tab {
+            padding: 8px 16px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            background: #161b22;
+            color: #8b949e;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .mode-tab:hover {
+            border-color: #58a6ff;
+            color: #c9d1d9;
+        }
+        .mode-tab.active {
+            background: #238636;
+            border-color: #238636;
+            color: #fff;
+        }
+        
+        .info-box {
+            background: #1a1a2e;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .info-box h4 {
+            margin: 0 0 8px 0;
+            color: #f59e0b;
+            font-size: 13px;
+        }
+        .formula {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            color: #a78bfa;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toggle Button for Explanation Panel -->
+    <button class="toggle-explanation-btn" onclick="toggleExplanationPanel()">
+        📚 Explanation
+    </button>
+
+    <!-- Explanation Panel -->
+    <div class="explanation-panel" id="explanationPanel">
+        <div class="explanation-panel-header">
+            <h2>📚 NOF & Behrend's Construction</h2>
+            <button class="close-panel-btn" onclick="toggleExplanationPanel()">×</button>
+        </div>
+        <div class="explanation-panel-content">
+            <div class="markdown-content" id="markdownContent">
+                <h3>Number on Forehead (NOF) Complexity</h3>
+                <p>In NOF communication, each party sees everyone's input <em>except their own</em>.</p>
+                <ul>
+                    <li><strong>Alice</strong> sees Bob's y and Charlie's z</li>
+                    <li><strong>Bob</strong> sees Alice's x and Charlie's z</li>
+                    <li><strong>Charlie</strong> sees Alice's x and Bob's y</li>
+                </ul>
+                
+                <h3>The Checksum Problem</h3>
+                <p>CSum(x, y, z) = 1 if x + y + z = N, else 0</p>
+                
+                <h3>Behrend's Construction</h3>
+                <p>Key insight: Points on a sphere have no 3-term arithmetic progressions (3-APs).</p>
+                <p>The midpoint of any two points on S<sup>d-1</sup> lies in the interior.</p>
+                
+                <h3>The Protocol</h3>
+                <p>Using a 3-AP free coloring χ with O(2<sup>√log N</sup>) colors:</p>
+                <ul>
+                    <li>Alice announces χ(3N - y - 2z)</li>
+                    <li>Bob announces χ(2N + x - z)</li>
+                    <li>Charlie announces χ(N + 2x + y)</li>
+                </ul>
+                <p>If x + y + z = N: all three compute the same value → same color</p>
+                <p>If x + y + z ≠ N: values form a non-trivial 3-AP → different colors</p>
+                
+                <h3>Result</h3>
+                <p>NOF(CheckSum) = O(√log N)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="index.html" class="home-button">
+                <svg viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L8 2.207l6.646 6.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.707 1.5Z"/>
+                    <path d="m8 3.293 6 6V13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5V9.293l6-6Z"/>
+                </svg>
+                Home
+            </a>
+            <div class="page-title">NOF Complexity & Behrend's Construction</div>
+        </div>
+    </nav>
+
+    <!-- Main Two-Column Layout -->
+    <div class="main-layout">
+        <!-- Left Panel: Behrend Construction -->
+        <div class="left-panel">
+            <div class="panel-header">
+                <h2>Behrend's Construction</h2>
+            </div>
+            <div class="canvas-container">
+                <canvas id="behrendCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Right Panel: NOF Protocol -->
+        <div class="right-panel">
+            <div class="panel-header">
+                <h2>NOF Protocol Visualization</h2>
+            </div>
+            <div class="canvas-container">
+                <canvas id="nofCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collapsible Control Panel -->
+    <div class="control-panel" id="controlPanel">
+        <div class="control-panel-header" onclick="toggleControlPanel()">
+            <div class="control-panel-title">
+                <span>⚙️</span>
+                <span>Controls</span>
+            </div>
+            <div class="toggle-icon">▼</div>
+        </div>
+        <div class="control-panel-content">
+            <!-- Mode Tabs -->
+            <div class="mode-tabs">
+                <button class="mode-tab active" id="demoTab" onclick="setMode('demo')">📽️ Demo</button>
+                <button class="mode-tab" id="interactiveTab" onclick="setMode('interactive')">🎮 Interactive</button>
+            </div>
+            
+            <!-- Interactive Controls -->
+            <div id="interactiveControls" style="display: none;">
+                <div class="control-group">
+                    <label>Party Inputs (for N = <span id="nValue">100</span>)</label>
+                    <div class="nof-controls">
+                        <div class="nof-input-group">
+                            <label class="party-label"><span class="party-dot alice-dot"></span> Alice (x)</label>
+                            <input type="number" id="aliceInput" value="30" min="0" max="100">
+                        </div>
+                        <div class="nof-input-group">
+                            <label class="party-label"><span class="party-dot bob-dot"></span> Bob (y)</label>
+                            <input type="number" id="bobInput" value="40" min="0" max="100">
+                        </div>
+                        <div class="nof-input-group">
+                            <label class="party-label"><span class="party-dot charlie-dot"></span> Charlie (z)</label>
+                            <input type="number" id="charlieInput" value="30" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label>Parameters</label>
+                    <div class="nof-controls">
+                        <div class="nof-input-group">
+                            <label>N (Target Sum)</label>
+                            <input type="number" id="targetN" value="100" min="10" max="1000">
+                        </div>
+                        <div class="nof-input-group">
+                            <label>k (Range)</label>
+                            <input type="number" id="kValue" value="5" min="2" max="10">
+                        </div>
+                        <div class="nof-input-group">
+                            <label>d (Dimension)</label>
+                            <input type="number" id="dValue" value="3" min="2" max="5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Actions</label>
+                <div class="control-row">
+                    <button class="primary" id="runBtn">▶ Run Protocol</button>
+                    <button id="prevBtn" disabled>◀ Previous</button>
+                    <button id="nextBtn" disabled>Next ▶</button>
+                    <button id="resetBtn">🔄 Reset</button>
+                </div>
+            </div>
+            
+            <div id="statusMsg" style="margin-top: 10px; padding: 8px; border-radius: 6px; font-size: 12px; text-align: center;"></div>
+            
+            <div class="info-box" id="resultBox" style="display: none;">
+                <h4>Protocol Result</h4>
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step Info Panel -->
+    <div class="info-panel collapsed" id="stepPanel">
+        <div class="info-panel-header">
+            <h3>📊 Algorithm Progress</h3>
+            <button class="close-panel-btn" onclick="toggleStepPanel()">×</button>
+        </div>
+        <div class="info-panel-content">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <div class="step-counter" id="stepCounter">Ready</div>
+            </div>
+            
+            <div class="step-description" id="stepDescription">
+                <h4>Behrend's Construction & NOF</h4>
+                <p>This visualization shows how Behrend's construction of 3-AP free sets enables an efficient NOF protocol for CheckSum.</p>
+            </div>
+        </div>
+    </div>
+
+    <button class="toggle-info-btn" id="toggleStepBtn" onclick="toggleStepPanel()">
+        📊 View Progress
+    </button>
+
+    <script type="module" src="js/nof_lib/nof_canvas.js"></script>
+    <script>
+        function toggleControlPanel() {
+            const panel = document.getElementById('controlPanel');
+            panel.classList.toggle('collapsed');
+        }
+
+        function toggleStepPanel() {
+            const panel = document.getElementById('stepPanel');
+            const btn = document.getElementById('toggleStepBtn');
+            panel.classList.toggle('collapsed');
+            btn.classList.toggle('hidden');
+        }
+
+        function toggleExplanationPanel() {
+            const panel = document.getElementById('explanationPanel');
+            if (panel) {
+                panel.classList.toggle('expanded');
+            }
+        }
+
+        function setMode(mode) {
+            const demoTab = document.getElementById('demoTab');
+            const interactiveTab = document.getElementById('interactiveTab');
+            const interactiveControls = document.getElementById('interactiveControls');
+            
+            if (mode === 'demo') {
+                demoTab.classList.add('active');
+                interactiveTab.classList.remove('active');
+                interactiveControls.style.display = 'none';
+            } else {
+                demoTab.classList.remove('active');
+                interactiveTab.classList.add('active');
+                interactiveControls.style.display = 'block';
+            }
+            
+            // Dispatch event for canvas to handle
+            window.dispatchEvent(new CustomEvent('modeChange', { detail: { mode } }));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const controlPanel = document.getElementById('controlPanel');
+            controlPanel.classList.remove('collapsed');
+        });
+    </script>
+</body>
+</html>
