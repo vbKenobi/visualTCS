@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manim Animations - VisualTCS</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/graph.css">
+    
+    <!-- CodeMirror for Python editor -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    
+    <style>
+        .main-container {
+            display: flex;
+            height: calc(100vh - 60px);
+            margin-top: 60px;
+        }
+        
+        .code-panel {
+            width: 50%;
+            background: #1a1a2e;
+            border-right: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .video-panel {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            background: #0d1117;
+        }
+        
+        .panel-header {
+            padding: 12px 16px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-header h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #c9d1d9;
+        }
+        
+        .editor-container {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .CodeMirror {
+            height: 100%;
+            font-size: 13px;
+        }
+        
+        .controls-bar {
+            padding: 12px 16px;
+            background: #161b22;
+            border-top: 1px solid #30363d;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            background: #21262d;
+            color: #c9d1d9;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+        
+        .btn-primary {
+            background: #238636;
+            border-color: #238636;
+        }
+        
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .video-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .video-container video {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .video-placeholder {
+            text-align: center;
+            color: #8b949e;
+        }
+        
+        .video-placeholder svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .status-bar {
+            padding: 8px 16px;
+            background: #161b22;
+            border-top: 1px solid #30363d;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        
+        .status-bar.error {
+            background: #3d1f1f;
+            color: #f87171;
+        }
+        
+        .status-bar.success {
+            background: #1f3d1f;
+            color: #7ee787;
+        }
+        
+        .quality-select {
+            padding: 6px 10px;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            background: #21262d;
+            color: #c9d1d9;
+            font-size: 12px;
+        }
+        
+        .scene-tabs {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .scene-tab {
+            padding: 6px 12px;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            background: transparent;
+            color: #8b949e;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .scene-tab.active {
+            background: #238636;
+            border-color: #238636;
+            color: #fff;
+        }
+        
+        .rendering-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(13, 17, 23, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        .rendering-overlay.hidden {
+            display: none;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #30363d;
+            border-top-color: #58a6ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f87171;
+        }
+        
+        .status-dot.connected {
+            background: #7ee787;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="index.html" class="home-button" title="Home">
+                <svg viewBox="0 0 32 32" width="28" height="28">
+                    <line x1="8" y1="8" x2="24" y2="8" stroke="#00ffff" stroke-width="2" stroke-opacity="0.6"/>
+                    <line x1="8" y1="8" x2="8" y2="24" stroke="#00ffff" stroke-width="2" stroke-opacity="0.6"/>
+                    <line x1="8" y1="8" x2="16" y2="16" stroke="#00ffff" stroke-width="2" stroke-opacity="0.6"/>
+                    <line x1="24" y1="8" x2="16" y2="16" stroke="#00ffff" stroke-width="2" stroke-opacity="0.6"/>
+                    <line x1="8" y1="24" x2="16" y2="16" stroke="#00ffff" stroke-width="2" stroke-opacity="0.6"/>
+                    <line x1="8" y1="24" x2="24" y2="24" stroke="#00ffff" stroke-width="2" stroke-opacity="0.6"/>
+                    <line x1="24" y1="8" x2="24" y2="24" stroke="#00ffff" stroke-width="2" stroke-opacity="0.6"/>
+                    <line x1="16" y1="16" x2="24" y2="24" stroke="#00ffff" stroke-width="2" stroke-opacity="0.6"/>
+                    <circle cx="8" cy="8" r="3" fill="#00ffff"/>
+                    <circle cx="24" cy="8" r="3" fill="#00ffcc"/>
+                    <circle cx="8" cy="24" r="3" fill="#00ffcc"/>
+                    <circle cx="24" cy="24" r="3" fill="#00ffff"/>
+                    <circle cx="16" cy="16" r="3" fill="#00ffcc"/>
+                </svg>
+            </a>
+            <h1>🎬 Manim Animations</h1>
+        </div>
+        <div class="nav-right">
+            <div class="server-status">
+                <div class="status-dot" id="serverDot"></div>
+                <span id="serverStatus">Checking server...</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Code Panel -->
+        <div class="code-panel">
+            <div class="panel-header">
+                <h3>🐍 Manim Scene Code</h3>
+                <div class="scene-tabs">
+                    <button class="scene-tab active" onclick="loadScene('bfs')">BFS</button>
+                    <button class="scene-tab" onclick="loadScene('dfs')">DFS</button>
+                    <button class="scene-tab" onclick="loadScene('compare')">Compare</button>
+                    <button class="scene-tab" onclick="loadScene('custom')">Custom</button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <textarea id="codeEditor"></textarea>
+            </div>
+            <div class="controls-bar">
+                <button class="btn btn-primary" id="renderBtn" onclick="renderAnimation()">
+                    🎬 Render Animation
+                </button>
+                <select class="quality-select" id="qualitySelect">
+                    <option value="low">Low (Fast)</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High (Slow)</option>
+                </select>
+                <span style="color: #8b949e; font-size: 12px;">
+                    Scene: <code id="sceneNameDisplay">BFSVisualization</code>
+                </span>
+            </div>
+        </div>
+
+        <!-- Video Panel -->
+        <div class="video-panel">
+            <div class="panel-header">
+                <h3>📺 Animation Output</h3>
+            </div>
+            <div class="video-container" id="videoContainer">
+                <div class="video-placeholder">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    <p>Click "Render Animation" to generate a Manim video</p>
+                    <p style="font-size: 12px; margin-top: 8px;">
+                        Make sure the Manim server is running:<br>
+                        <code>cd manim_server && python server.py</code>
+                    </p>
+                </div>
+                
+                <div class="rendering-overlay hidden" id="renderingOverlay">
+                    <div class="spinner"></div>
+                    <p style="color: #c9d1d9; margin-top: 16px;">Rendering animation...</p>
+                    <p style="color: #8b949e; font-size: 12px;">This may take 10-60 seconds</p>
+                </div>
+            </div>
+            <div class="status-bar" id="statusBar">
+                Ready to render
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Server URL
+        const SERVER_URL = 'http://localhost:5000';
+        
+        // Editor instance
+        let editor;
+        let currentScene = 'BFSVisualization';
+        
+        // Scene templates
+        const sceneTemplates = {
+            bfs: {
+                name: 'BFSVisualization',
+                code: `from manim import *
+from collections import deque
+
+class BFSVisualization(Scene):
+    def construct(self):
+        # Graph structure
+        graph = {0: [1, 2], 1: [0, 3, 4], 2: [0, 5, 6], 3: [1], 4: [1], 5: [2], 6: [2]}
+        positions = {
+            0: [0, 2, 0], 1: [-1.5, 1, 0], 2: [1.5, 1, 0],
+            3: [-2.5, 0, 0], 4: [-0.5, 0, 0], 5: [0.5, 0, 0], 6: [2.5, 0, 0]
+        }
+        
+        # Title
+        title = Text("Breadth-First Search", font_size=36).to_edge(UP)
+        self.play(Write(title))
+        
+        # Create nodes
+        nodes = {}
+        for node_id, pos in positions.items():
+            circle = Circle(radius=0.4, color=BLUE, fill_opacity=0.3).move_to(pos)
+            label = Text(str(node_id), font_size=24).move_to(pos)
+            nodes[node_id] = VGroup(circle, label)
+            self.play(Create(nodes[node_id]), run_time=0.2)
+        
+        # Create edges
+        for node, neighbors in graph.items():
+            for neighbor in neighbors:
+                if node < neighbor:
+                    line = Line(positions[node], positions[neighbor], color=GREY)
+                    self.add(line)
+        
+        # BFS Animation
+        visited = set()
+        queue = deque([0])
+        visited.add(0)
+        
+        while queue:
+            current = queue.popleft()
+            self.play(nodes[current][0].animate.set_fill(ORANGE, 0.8), run_time=0.5)
+            
+            for neighbor in sorted(graph[current]):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append(neighbor)
+                    self.play(nodes[neighbor][0].animate.set_stroke(YELLOW, 4), run_time=0.2)
+            
+            self.play(nodes[current][0].animate.set_fill(GREEN, 0.8), run_time=0.3)
+        
+        self.play(Write(Text("Complete!", color=GREEN).to_edge(DOWN)))
+        self.wait(1)`
+            },
+            
+            dfs: {
+                name: 'DFSVisualization',
+                code: `from manim import *
+
+class DFSVisualization(Scene):
+    def construct(self):
+        # Graph structure
+        graph = {0: [1, 2], 1: [0, 3, 4], 2: [0, 5, 6], 3: [1], 4: [1], 5: [2], 6: [2]}
+        positions = {
+            0: [0, 2, 0], 1: [-1.5, 1, 0], 2: [1.5, 1, 0],
+            3: [-2.5, 0, 0], 4: [-0.5, 0, 0], 5: [0.5, 0, 0], 6: [2.5, 0, 0]
+        }
+        
+        # Title
+        title = Text("Depth-First Search", font_size=36).to_edge(UP)
+        self.play(Write(title))
+        
+        # Create nodes
+        nodes = {}
+        for node_id, pos in positions.items():
+            circle = Circle(radius=0.4, color=RED, fill_opacity=0.3).move_to(pos)
+            label = Text(str(node_id), font_size=24).move_to(pos)
+            nodes[node_id] = VGroup(circle, label)
+            self.play(Create(nodes[node_id]), run_time=0.2)
+        
+        # Create edges
+        for node, neighbors in graph.items():
+            for neighbor in neighbors:
+                if node < neighbor:
+                    line = Line(positions[node], positions[neighbor], color=GREY)
+                    self.add(line)
+        
+        # DFS Animation (iterative)
+        visited = set()
+        stack = [0]
+        
+        while stack:
+            current = stack.pop()
+            if current in visited:
+                continue
+            visited.add(current)
+            
+            self.play(nodes[current][0].animate.set_fill(ORANGE, 0.8), run_time=0.5)
+            
+            for neighbor in sorted(graph[current], reverse=True):
+                if neighbor not in visited:
+                    stack.append(neighbor)
+                    self.play(nodes[neighbor][0].animate.set_stroke(YELLOW, 4), run_time=0.2)
+            
+            self.play(nodes[current][0].animate.set_fill(PURPLE, 0.8), run_time=0.3)
+        
+        self.play(Write(Text("Complete!", color=PURPLE).to_edge(DOWN)))
+        self.wait(1)`
+            },
+            
+            compare: {
+                name: 'BFSvsDFS',
+                code: `from manim import *
+
+class BFSvsDFS(Scene):
+    def construct(self):
+        title = Text("BFS vs DFS", font_size=40).to_edge(UP)
+        self.play(Write(title))
+        
+        # Labels
+        bfs_label = Text("BFS (Queue)", font_size=24, color=BLUE).shift(LEFT*3 + UP*1.5)
+        dfs_label = Text("DFS (Stack)", font_size=24, color=RED).shift(RIGHT*3 + UP*1.5)
+        self.play(Write(bfs_label), Write(dfs_label))
+        
+        # Simple tree
+        positions = {0: [0, 0.5, 0], 1: [-0.8, -0.3, 0], 2: [0.8, -0.3, 0], 3: [-0.8, -1.1, 0], 4: [0.8, -1.1, 0]}
+        graph = {0: [1, 2], 1: [3], 2: [4], 3: [], 4: []}
+        
+        def make_graph(shift, color):
+            nodes = {}
+            for nid, pos in positions.items():
+                c = Circle(radius=0.25, color=color, fill_opacity=0.2).move_to([p + s for p, s in zip(pos, shift)])
+                l = Text(str(nid), font_size=18).move_to(c.get_center())
+                nodes[nid] = VGroup(c, l)
+            return nodes
+        
+        bfs_nodes = make_graph([-3, 0, 0], BLUE)
+        dfs_nodes = make_graph([3, 0, 0], RED)
+        
+        for n in list(bfs_nodes.values()) + list(dfs_nodes.values()):
+            self.add(n)
+        
+        # BFS order: 0, 1, 2, 3, 4 (level by level)
+        # DFS order: 0, 1, 3, 2, 4 (deep first)
+        bfs_order = [0, 1, 2, 3, 4]
+        dfs_order = [0, 1, 3, 2, 4]
+        
+        for i in range(5):
+            self.play(
+                bfs_nodes[bfs_order[i]][0].animate.set_fill(BLUE, 0.8),
+                dfs_nodes[dfs_order[i]][0].animate.set_fill(RED, 0.8),
+                run_time=0.6
+            )
+        
+        self.wait(2)`
+            },
+            
+            custom: {
+                name: 'CustomScene',
+                code: `from manim import *
+
+class CustomScene(Scene):
+    """
+    Create your own Manim animation!
+    
+    Tips:
+    - self.play() animates objects
+    - self.wait() pauses
+    - Create() draws an object
+    - Write() writes text
+    - Transform() morphs between objects
+    """
+    def construct(self):
+        # Your code here!
+        circle = Circle(color=BLUE)
+        square = Square(color=RED)
+        
+        self.play(Create(circle))
+        self.play(Transform(circle, square))
+        self.play(circle.animate.shift(UP))
+        
+        text = Text("Hello Manim!", font_size=48)
+        self.play(Write(text))
+        
+        self.wait(2)`
+            }
+        };
+        
+        // Initialize
+        async function init() {
+            // Setup CodeMirror
+            editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+                mode: 'python',
+                theme: 'dracula',
+                lineNumbers: true,
+                indentUnit: 4,
+                tabSize: 4,
+                lineWrapping: true
+            });
+            
+            loadScene('bfs');
+            checkServer();
+        }
+        
+        // Check server status
+        async function checkServer() {
+            try {
+                const response = await fetch(`${SERVER_URL}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    document.getElementById('serverDot').classList.add('connected');
+                    document.getElementById('serverStatus').textContent = `Connected (${data.manim_version})`;
+                    document.getElementById('renderBtn').disabled = false;
+                } else {
+                    throw new Error('Server not healthy');
+                }
+            } catch (error) {
+                document.getElementById('serverDot').classList.remove('connected');
+                document.getElementById('serverStatus').textContent = 'Server offline';
+                document.getElementById('renderBtn').disabled = true;
+                setStatus('Server not running. Start with: cd manim_server && python server.py', 'error');
+            }
+        }
+        
+        // Load scene template
+        window.loadScene = function(sceneKey) {
+            const template = sceneTemplates[sceneKey];
+            editor.setValue(template.code);
+            currentScene = template.name;
+            document.getElementById('sceneNameDisplay').textContent = currentScene;
+            
+            // Update tabs
+            document.querySelectorAll('.scene-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.textContent.toLowerCase() === sceneKey || 
+                    (sceneKey === 'compare' && tab.textContent === 'Compare'));
+            });
+        };
+        
+        // Render animation
+        window.renderAnimation = async function() {
+            const code = editor.getValue();
+            const quality = document.getElementById('qualitySelect').value;
+            
+            // Extract scene name from code
+            const sceneMatch = code.match(/class\s+(\w+)\s*\(\s*Scene\s*\)/);
+            if (sceneMatch) {
+                currentScene = sceneMatch[1];
+                document.getElementById('sceneNameDisplay').textContent = currentScene;
+            }
+            
+            // Show rendering overlay
+            document.getElementById('renderingOverlay').classList.remove('hidden');
+            setStatus('Rendering...', '');
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/render`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: code,
+                        scene_name: currentScene,
+                        quality: quality
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Show video
+                    const videoUrl = `${SERVER_URL}${data.video_url}`;
+                    document.getElementById('videoContainer').innerHTML = `
+                        <video controls autoplay loop>
+                            <source src="${videoUrl}" type="video/mp4">
+                            Your browser does not support video playback.
+                        </video>
+                        <div class="rendering-overlay hidden" id="renderingOverlay">
+                            <div class="spinner"></div>
+                            <p style="color: #c9d1d9; margin-top: 16px;">Rendering animation...</p>
+                        </div>
+                    `;
+                    setStatus(`Rendered successfully! ${data.cached ? '(from cache)' : ''}`, 'success');
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, 'error');
+                document.getElementById('renderingOverlay').classList.add('hidden');
+            }
+        };
+        
+        // Update status bar
+        function setStatus(message, type) {
+            const bar = document.getElementById('statusBar');
+            bar.textContent = message;
+            bar.className = 'status-bar';
+            if (type) bar.classList.add(type);
+        }
+        
+        // Start
+        init();
+        
+        // Periodically check server
+        setInterval(checkServer, 30000);
+    </script>
+</body>
+</html>

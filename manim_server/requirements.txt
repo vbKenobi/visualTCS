@@ -1,0 +1,4 @@
+# Manim Server Requirements
+flask>=2.0.0
+flask-cors>=3.0.0
+manim>=0.17.0
