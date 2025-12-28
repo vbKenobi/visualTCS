@@ -266,11 +266,33 @@
     </button>
 
     <script type="module" src="js/nof_lib/nof_canvas.js"></script>
+    <!-- Markdown and Math Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <script type="module">
+        // Initialize canvases after DOM is ready
+        import { resizeCanvas as resizeInputCanvas } from './js/graph_lib/graph_draw.js';
+        import { resizeCanvas as resizeAlgoCanvas } from './js/ustcon_lib/ustcon_draw.js';
         import { loadMarkdown } from './js/markdown_loader.js';
         
-        document.addEventListener('DOMContentLoaded', () => {
-            loadMarkdown('explanations/nof.md', 'markdownContent');
+        window.addEventListener('load', () => {
+            const inputCanvas = document.getElementById('inputCanvas');
+            const algoCanvas = document.getElementById('algoCanvas');
+            
+            // Force canvas resize after layout is complete
+            setTimeout(() => {
+                if (inputCanvas) resizeInputCanvas(inputCanvas);
+                if (algoCanvas) resizeAlgoCanvas(algoCanvas);
+            }, 100);
+            
+            // Wait for external libraries to load before loading markdown
+            setTimeout(() => {
+                console.log('Loading markdown...');
+                console.log('marked available:', typeof marked !== 'undefined');
+                console.log('renderMathInElement available:', typeof renderMathInElement !== 'undefined');
+                loadMarkdown('explanations/nof.md', 'markdownContent');
+            }, 500);
         });
     </script>
     <script>
