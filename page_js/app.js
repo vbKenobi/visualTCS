@@ -193,3 +193,18 @@ initCardAnimation("shortestPathCard");
 initCardAnimation("bfsDfsCard");
 initCardAnimation("graphLayoutCard");
 initCardAnimation("nofCard");
+
+// Re-initialize card animations after window load to ensure proper dimensions
+window.addEventListener('load', () => {
+    // Clear and reinitialize if needed
+    ['shortestPathCard', 'bfsDfsCard', 'graphLayoutCard', 'nofCard'].forEach(cardId => {
+        const card = document.getElementById(cardId);
+        if (card) {
+            const existingCanvas = card.querySelector('canvas');
+            if (existingCanvas && (existingCanvas.width === 0 || existingCanvas.height === 0)) {
+                existingCanvas.remove();
+                initCardAnimation(cardId);
+            }
+        }
+    });
+});
