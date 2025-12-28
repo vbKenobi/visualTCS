@@ -17,7 +17,7 @@ Let $r_3(N)$ denote the maximum size of a set $S \subseteq [N]$ that is **3-AP f
 
 ### Greedy Approach (Computer Science)
 Keep choosing elements that don't form a 3-AP with existing elements:
-$$\{1, 2, \_, 4, 5, \_, \_, \_, \_, 10, \dots\}$$
+$$ \{ 1, 2, \ldots, 4, 5, \ldots, 10, \ldots \} $$
 
 This yields roughly $N^{0.6+c}$ terms.
 
