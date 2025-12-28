@@ -114,33 +114,7 @@
         </div>
         <div class="explanation-panel-content">
             <div class="markdown-content" id="markdownContent">
-                <h3>Number on Forehead (NOF) Complexity</h3>
-                <p>In NOF communication, each party sees everyone's input <em>except their own</em>.</p>
-                <ul>
-                    <li><strong>Alice</strong> sees Bob's y and Charlie's z</li>
-                    <li><strong>Bob</strong> sees Alice's x and Charlie's z</li>
-                    <li><strong>Charlie</strong> sees Alice's x and Bob's y</li>
-                </ul>
-                
-                <h3>The Checksum Problem</h3>
-                <p>CSum(x, y, z) = 1 if x + y + z = N, else 0</p>
-                
-                <h3>Behrend's Construction</h3>
-                <p>Key insight: Points on a sphere have no 3-term arithmetic progressions (3-APs).</p>
-                <p>The midpoint of any two points on S<sup>d-1</sup> lies in the interior.</p>
-                
-                <h3>The Protocol</h3>
-                <p>Using a 3-AP free coloring χ with O(2<sup>√log N</sup>) colors:</p>
-                <ul>
-                    <li>Alice announces χ(3N - y - 2z)</li>
-                    <li>Bob announces χ(2N + x - z)</li>
-                    <li>Charlie announces χ(N + 2x + y)</li>
-                </ul>
-                <p>If x + y + z = N: all three compute the same value → same color</p>
-                <p>If x + y + z ≠ N: values form a non-trivial 3-AP → different colors</p>
-                
-                <h3>Result</h3>
-                <p>NOF(CheckSum) = O(√log N)</p>
+                <p>Loading explanation...</p>
             </div>
         </div>
     </div>
@@ -292,6 +266,13 @@
     </button>
 
     <script type="module" src="js/nof_lib/nof_canvas.js"></script>
+    <script type="module">
+        import { loadMarkdown } from './js/markdown_loader.js';
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMarkdown('explanations/nof.md', 'markdownContent');
+        });
+    </script>
     <script>
         function toggleControlPanel() {
             const panel = document.getElementById('controlPanel');
